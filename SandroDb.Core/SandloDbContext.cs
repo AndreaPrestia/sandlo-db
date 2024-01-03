@@ -51,16 +51,16 @@ namespace SandloDb.Core
 
             var type = entity.GetType();
 
-            if (_collections == null || !_collections.ContainsKey(type))
+            if (_collections == null)
             {
                 throw new InvalidOperationException($"Collection {type.Name} not found.");
             }
 
-            var collectionContent = _collections[type];
+            var collectionExists = _collections.TryGetValue(type, out var collectionContent);
 
-            if (collectionContent == null)
+            if (!collectionExists || collectionContent == null)
             {
-                throw new InvalidOperationException(nameof(collectionContent));
+                throw new InvalidOperationException($"Collection {type.Name} not found.");
             }
 
             var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
@@ -100,16 +100,16 @@ namespace SandloDb.Core
 
             var type = entity.GetType();
 
-            if (_collections == null || !_collections.ContainsKey(type))
+            if (_collections == null)
             {
                 throw new InvalidOperationException($"Collection {type.Name} not found.");
             }
 
-            var collectionContent = _collections[type];
+            var collectionExists = _collections.TryGetValue(type, out var collectionContent);
 
-            if (collectionContent == null)
+            if (!collectionExists || collectionContent == null)
             {
-                throw new InvalidOperationException(nameof(collectionContent));
+                throw new InvalidOperationException($"Collection {type.Name} not found.");
             }
 
             var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
