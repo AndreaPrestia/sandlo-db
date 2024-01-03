@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34322.80
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SandloDb.Core", "SandroDb.Core\SandloDb.Core.csproj", "{31E8709F-4A57-4588-B99B-E3F61DD94FDE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{DA71AE75-1E5A-471C-9090-D9F2F5C5DA2B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SandloDb.Unit.Tests", "Tests\SandloDb.Unit.Tests\SandloDb.Unit.Tests.csproj", "{35923F9C-BD6C-44C7-B32C-B90A82786520}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{31E8709F-4A57-4588-B99B-E3F61DD94FDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31E8709F-4A57-4588-B99B-E3F61DD94FDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31E8709F-4A57-4588-B99B-E3F61DD94FDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31E8709F-4A57-4588-B99B-E3F61DD94FDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35923F9C-BD6C-44C7-B32C-B90A82786520}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35923F9C-BD6C-44C7-B32C-B90A82786520}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35923F9C-BD6C-44C7-B32C-B90A82786520}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35923F9C-BD6C-44C7-B32C-B90A82786520}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{35923F9C-BD6C-44C7-B32C-B90A82786520} = {DA71AE75-1E5A-471C-9090-D9F2F5C5DA2B}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2BA5C06B-F391-4396-9BBC-345C8E0734C8}
+	EndGlobalSection
+EndGlobal
