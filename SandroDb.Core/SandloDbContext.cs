@@ -121,6 +121,59 @@ namespace SandloDb.Core
 
             return entity;
         }
+        
+        /// <summary>
+        /// Updates a subset of entities in the storage
+        /// </summary>
+        /// <param name="entities"></param>
+        /// <exception cref="ArgumentNullException">if entity is null</exception>
+        /// <exception cref="InvalidOperationException">if collection of type T is not found</exception>
+        /// <exception cref="InvalidOperationException">if entities to update not found or we have more than the provided ones</exception>
+        /// <returns></returns>
+        public IList<T> UpdateMany<T>(IList<T>? entities) where T : class, IEntity
+        {
+            ArgumentNullException.ThrowIfNull(entities);
+
+            var type = typeof(T);
+
+            if (_collections == null)
+            {
+                throw new InvalidOperationException($"Collection {type.Name} not found.");
+            }
+
+            var collectionExists = _collections.TryGetValue(type, out var collectionContent);
+
+            if (!collectionExists || collectionContent == null)
+            {
+                throw new InvalidOperationException($"Collection {type.Name} not found.");
+            }
+
+            var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
+
+            if (collection == null)
+            {
+                throw new InvalidOperationException(nameof(collection));
+            }
+
+            var foundedElements = collection.Where(e => entities.Select(et => et.Id).Contains(e.Id)).ToList();
+
+            if (foundedElements == null || !foundedElements.Any())
+            {
+                throw new InvalidOperationException("Entity not found.");
+            }
+
+            if (foundedElements.Count > entities.Count)
+            {
+                throw new InvalidOperationException("More than one entity found.");
+            }
+            
+            foreach (var entity in entities)
+            {
+                entity.Updated = GetTimestamp();
+            }
+
+            return entities;
+        }
 
         /// <summary>
         /// Remove entity from context
