@@ -2,8 +2,6 @@
 
 namespace SandloDb.Core
 {
-    //TODO add locks where not thread safe!
-    //TODO apply DRY where needed
     public sealed class SandloDbContext
     {
         private ConcurrentDictionary<Type, ConcurrentBag<object>>? _collections = new();
