@@ -37,7 +37,7 @@ This is just a test project, I aim to expand it and make it usable :)
 - expand code coverage with unit testing
 - make benchmarking
 - make safety tests
-- make robustness tests (a lot of concurrent requests shouldn't make it cry)
+- make robustness tests (with a lot of concurrent requests shouldn't be crash, corrupted or inconsistent data, race conditions not satisfied and so on)
 
   
 
