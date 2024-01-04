@@ -23,7 +23,7 @@ namespace SandloDb.Core
         {
             ArgumentNullException.ThrowIfNull(entity);
 
-            var type = entity.GetType();
+            var type = typeof(T);
 
             if (_collections == null || !_collections.ContainsKey(type))
             {
@@ -90,7 +90,7 @@ namespace SandloDb.Core
         {
             ArgumentNullException.ThrowIfNull(entity);
 
-            var type = entity.GetType();
+            var type = typeof(T);
 
             if (_collections == null)
             {
@@ -192,7 +192,7 @@ namespace SandloDb.Core
         {
             ArgumentNullException.ThrowIfNull(entity);
 
-            var type = entity.GetType();
+            var type = typeof(T);
 
             if (_collections == null)
             {
