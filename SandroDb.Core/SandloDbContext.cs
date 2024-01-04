@@ -4,7 +4,7 @@ namespace SandloDb.Core
 {
     //TODO add locks where not thread safe!
     //TODO apply DRY where needed
-    public class SandloDbContext
+    public sealed class SandloDbContext
     {
         private ConcurrentDictionary<Type, ConcurrentBag<object>>? _collections = new();
         private long CurrentTimestamp => new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
