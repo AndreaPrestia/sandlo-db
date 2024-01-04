@@ -28,7 +28,7 @@ EntityTtlMinutes | int | The TTL of the in-memory entities from their creation d
 
 **Conclusion**
 
-This is a test project, i'd like to expand it and make it usable :)
+This is just a test project, I aim to expand it and make it usable :)
 
 **TODO**
 
