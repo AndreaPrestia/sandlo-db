@@ -37,6 +37,40 @@ namespace SandloDb.Core
 
             return entity;
         }
+        
+        /// <summary>
+        /// Adds elements to storage
+        /// </summary>
+        /// <param name="entities"></param>
+        /// <exception cref="ArgumentNullException">if entities is null</exception>
+        /// <returns></returns>
+        public IList<T> AddMany<T>(List<T>? entities) where T : class, IEntity
+        {
+            ArgumentNullException.ThrowIfNull(entities);
+
+            var type = typeof(T);
+
+            if (_collections == null || !_collections.ContainsKey(type))
+            {
+                _collections ??= new ConcurrentDictionary<Type, ConcurrentBag<object>>();
+
+                _collections.TryAdd(type, new ConcurrentBag<object>());
+            }
+
+            var collection = _collections[type];
+
+            foreach (var entity in entities)
+            {
+                entity.Id = Guid.NewGuid();
+                entity.Created = GetTimestamp();
+                entity.Updated = GetTimestamp();
+                collection.Add(entity);
+            }
+
+            _collections[type] = collection;
+
+            return entities;
+        }
 
         /// <summary>
         /// Update an element in the storage
@@ -128,6 +162,55 @@ namespace SandloDb.Core
             }
 
             collection = new ConcurrentBag<T>(collection.Where(e => e.Id != entity.Id));
+            
+            if (collection.IsEmpty)
+            {
+                _collections.TryRemove(type, out _);
+            }
+
+            return count;
+        }
+        
+        /// <summary>
+        /// Remove a subset of entities from context
+        /// </summary>
+        /// <param name="entities"></param>
+        /// <exception cref="ArgumentNullException">if entities is null</exception>
+        /// <exception cref="InvalidOperationException">if entities to delete not found</exception>
+        /// <returns></returns>
+        public int RemoveMany<T>(IList<T>? entities) where T : class, IEntity
+        {
+            ArgumentNullException.ThrowIfNull(entities);
+
+            var type = typeof(T);
+
+            if (_collections == null)
+            {
+                throw new InvalidOperationException($"Collection {type.Name} not found.");
+            }
+
+            var collectionExists = _collections.TryGetValue(type, out var collectionContent);
+
+            if (!collectionExists || collectionContent == null)
+            {
+                throw new InvalidOperationException($"Collection {type.Name} not found.");
+            }
+
+            var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
+
+            if (collection == null)
+            {
+                throw new InvalidOperationException(nameof(collection));
+            }
+
+            var count = collection.Count(e => entities.Select(et => et.Id).Contains(e.Id));
+
+            if (count == 0)
+            {
+                throw new InvalidOperationException("Entities not found.");
+            }
+
+            collection = new ConcurrentBag<T>(collection.Where(e => !entities.Select(et => et.Id).Contains(e.Id)));
             
             if (collection.IsEmpty)
             {
