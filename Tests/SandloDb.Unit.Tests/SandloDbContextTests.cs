@@ -186,6 +186,122 @@ namespace SandloDb.Unit.Tests
             //assert
             Assert.Throws<InvalidOperationException>(() => action());
         }
+        
+        [Fact]
+        public void SandloDbContext_UpdateMany_Ok()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+            
+            var entityTwo = new SandloDbTestEntity()
+            {
+                Name = "nameTwo",
+                Description = "descriptionTwo"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+
+            var result = service.AddMany(new List<SandloDbTestEntity>()
+            {
+                entity, entityTwo
+            });
+
+            //assert
+            Assert.NotNull(result);
+            Assert.Collection(result, eOne =>
+                {
+                    Assert.NotEqual(Guid.Empty, eOne.Id);
+                    Assert.NotEqual(0, eOne.Created);
+                    Assert.NotEqual(0, eOne.Updated);
+                    Assert.Equal(entity.Created, eOne.Created);
+                    Assert.Equal(entity.Updated, eOne.Updated);
+                    Assert.Equal(entity.Name, eOne.Name);
+                    Assert.Equal(entity.Description, eOne.Description);
+                },
+                eTwo =>
+                {
+                    Assert.NotEqual(Guid.Empty, eTwo.Id);
+                    Assert.NotEqual(0, eTwo.Created);
+                    Assert.NotEqual(0, eTwo.Updated);
+                    Assert.Equal(entityTwo.Created, eTwo.Created);
+                    Assert.Equal(entityTwo.Updated, eTwo.Updated);
+                    Assert.Equal(entityTwo.Name, eTwo.Name);
+                    Assert.Equal(entityTwo.Description, eTwo.Description);
+                });
+
+            foreach (var e in result)
+            {
+                e.Name = $"Updated {e.Name}";
+                e.Description = $"Updated {e.Description}";
+            }
+
+            var updateResult = service.UpdateMany(result);
+
+            Assert.NotNull(updateResult);
+            Assert.Collection(updateResult, eOne =>
+                {
+                    Assert.Equal(entity.Id, eOne.Id);
+                    Assert.Equal(entity.Created, eOne.Created);
+                    Assert.Equal(entity.Updated, eOne.Updated);
+                    Assert.Equal(entity.Name, eOne.Name);
+                    Assert.Equal(entity.Description, eOne.Description);
+                },
+                eTwo =>
+                {
+                    Assert.Equal(entityTwo.Id, eTwo.Id);
+                    Assert.Equal(entityTwo.Created, eTwo.Created);
+                    Assert.Equal(entityTwo.Updated, eTwo.Updated);
+                    Assert.Equal(entityTwo.Name, eTwo.Name);
+                    Assert.Equal(entityTwo.Description, eTwo.Description);
+                });
+        }
+
+        [Fact]
+        public void SandloDbContext_UpdateMany_Entity_Null_Ko()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.UpdateMany<SandloDbTestEntity>(null);
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
+        public void SandloDbContext_UpdateMany_Collection_Not_Found_Ko()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+            
+            var entityTwo = new SandloDbTestEntity()
+            {
+                Name = "nameTwo",
+                Description = "descriptionTwo"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.UpdateMany(new List<SandloDbTestEntity>()
+            {
+                entity, entityTwo
+            });
+
+            //assert
+            Assert.Throws<InvalidOperationException>(() => action());
+        }
 
         [Fact]
         public void SandloDbContext_Remove_Ok()
@@ -253,7 +369,6 @@ namespace SandloDb.Unit.Tests
         [Fact]
         public void SandloDbContext_RemoveMany_Ok()
         {
-            //arrange
             //arrange
             var entity = new SandloDbTestEntity()
             {
