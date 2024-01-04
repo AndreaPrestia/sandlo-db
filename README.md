@@ -28,12 +28,17 @@ EntityTtlMinutes | int | The TTL of the in-memory entities from their creation d
 
 **Conclusion**
 
-This is a test project, i'd like to expand it with:
+This is a test project, i'd like to expand it and make it usable :)
 
-- better code quality
-- apply DRY where needed
+**TODO**
+
+- improve code quality
 - check for thread safety in the dbcontext
-- manage max memory allocation and memory cleanup of older entities, with specific policy, when reached threshold 
+- manage max memory allocation and memory cleanup of older entities, with specific policy, when reached threshold
+- expand code coverage with unit testing
+- make benchmarking
+- make safety tests
+- make robustness tests (a lot of concurrent requests shouldn't make it cry)
 
   
 
