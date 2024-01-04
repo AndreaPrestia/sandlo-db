@@ -8,6 +8,10 @@ namespace SandloDb.Core
     {
         private ConcurrentDictionary<Type, ConcurrentBag<object>>? _collections = new();
 
+        public IList<Type> CurrentTypes => _collections != null && _collections.Any()
+            ? _collections.Select(x => x.Key).ToList()
+            : new List<Type>();
+
         /// <summary>
         /// Add element to storage
         /// </summary>
@@ -38,7 +42,7 @@ namespace SandloDb.Core
 
             return entity;
         }
-        
+
         /// <summary>
         /// Adds elements to storage
         /// </summary>
@@ -122,7 +126,7 @@ namespace SandloDb.Core
 
             return entity;
         }
-        
+
         /// <summary>
         /// Updates a subset of entities in the storage
         /// </summary>
@@ -167,7 +171,7 @@ namespace SandloDb.Core
             {
                 throw new InvalidOperationException("More than one entity found.");
             }
-            
+
             foreach (var entity in entities)
             {
                 entity.Updated = GetTimestamp();
@@ -216,7 +220,56 @@ namespace SandloDb.Core
             }
 
             collection = new ConcurrentBag<T>(collection.Where(e => e.Id != entity.Id));
-            
+
+            if (collection.IsEmpty)
+            {
+                _collections.TryRemove(type, out _);
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Remove entity from context
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="type"></param>
+        /// <exception cref="ArgumentNullException">if entity or type is null</exception>
+        /// <exception cref="InvalidOperationException">if entity to delete not found</exception>
+        /// <returns></returns>
+        public int Remove(IEntity? entity, Type? type)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+            ArgumentNullException.ThrowIfNull(type);
+
+            if (_collections == null)
+            {
+                throw new InvalidOperationException($"Collection {type.Name} not found.");
+            }
+
+            var collectionExists = _collections.TryGetValue(type, out var collectionContent);
+
+            if (!collectionExists || collectionContent == null)
+            {
+                throw new InvalidOperationException($"Collection {type.Name} not found.");
+            }
+
+            var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+
+            if (collection == null)
+            {
+                throw new InvalidOperationException(nameof(collection));
+            }
+
+            var count = collection.Count(e => e.Id == entity.Id);
+
+            if (count == 0)
+            {
+                throw new InvalidOperationException("Entity not found.");
+            }
+
+            collection = new ConcurrentBag<IEntity>(collection.Where(e => e.Id != entity.Id));
+
             if (collection.IsEmpty)
             {
                 _collections.TryRemove(type, out _);
@@ -265,7 +318,56 @@ namespace SandloDb.Core
             }
 
             collection = new ConcurrentBag<T>(collection.Where(e => !entities.Select(et => et.Id).Contains(e.Id)));
-            
+
+            if (collection.IsEmpty)
+            {
+                _collections.TryRemove(type, out _);
+            }
+
+            return count;
+        }
+        
+        /// <summary>
+        /// Remove a subset of entities by type from context
+        /// </summary>
+        /// <param name="entities"></param>
+        /// <param name="type"></param>
+        /// <exception cref="ArgumentNullException">if entities or type are null</exception>
+        /// <exception cref="InvalidOperationException">if entities to delete not found</exception>
+        /// <returns></returns>
+        public int RemoveMany(IList<IEntity>? entities, Type? type)
+        {
+            ArgumentNullException.ThrowIfNull(entities);
+            ArgumentNullException.ThrowIfNull(type);
+
+            if (_collections == null)
+            {
+                throw new InvalidOperationException($"Collection {type.Name} not found.");
+            }
+
+            var collectionExists = _collections.TryGetValue(type, out var collectionContent);
+
+            if (!collectionExists || collectionContent == null)
+            {
+                throw new InvalidOperationException($"Collection {type.Name} not found.");
+            }
+
+            var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+
+            if (collection == null)
+            {
+                throw new InvalidOperationException(nameof(collection));
+            }
+
+            var count = collection.Count(e => entities.Select(et => et.Id).Contains(e.Id));
+
+            if (count == 0)
+            {
+                throw new InvalidOperationException("Entities not found.");
+            }
+
+            collection = new ConcurrentBag<IEntity>(collection.Where(e => !entities.Select(et => et.Id).Contains(e.Id)));
+
             if (collection.IsEmpty)
             {
                 _collections.TryRemove(type, out _);
@@ -286,17 +388,44 @@ namespace SandloDb.Core
             {
                 return new List<T>();
             }
-            
+
             var collectionContent = _collections[type];
 
             if (collectionContent == null! || !collectionContent.Any())
             {
                 return new List<T>();
             }
-            
+
             var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
-            
+
             return !collection.Any() ? new List<T>() : collection.ToList();
+        }
+
+        /// <summary>
+        /// Get all entities of IEntity by type
+        /// </summary>
+        /// <param name="type"></param>
+        /// <exception cref="ArgumentNullException">if type is null</exception>
+        /// <returns></returns>
+        public IList<IEntity> GetAll(Type? type)
+        {
+            ArgumentNullException.ThrowIfNull(type);
+
+            if (_collections == null || !_collections.ContainsKey(type))
+            {
+                return new List<IEntity>();
+            }
+
+            var collectionContent = _collections[type];
+
+            if (collectionContent == null! || !collectionContent.Any())
+            {
+                return new List<IEntity>();
+            }
+
+            var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+
+            return !collection.Any() ? new List<IEntity>() : collection.ToList();
         }
 
         /// <summary>
@@ -304,8 +433,10 @@ namespace SandloDb.Core
         /// </summary>
         /// <param name="predicate"></param>
         /// <returns></returns>
-        public IList<T> GetBy<T>(Func<T, bool> predicate) where T : class, IEntity
+        public IList<T> GetBy<T>(Func<T, bool>? predicate) where T : class, IEntity
         {
+            ArgumentNullException.ThrowIfNull(predicate);
+
             var type = typeof(T);
 
             if (_collections == null || !_collections.ContainsKey(type))
@@ -319,35 +450,96 @@ namespace SandloDb.Core
             {
                 return new List<T>();
             }
-            
+
             var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
-            
+
             return !collection.Any() ? new List<T>() : collection.Where(predicate).ToList();
+        }
+
+        /// <summary>
+        /// Get a subset of entities of IEntity passing the type
+        /// </summary>
+        /// <param name="predicate"></param>
+        /// <param name="type"></param>
+        /// <exception cref="ArgumentNullException">if predicate or type is null</exception>
+        /// <returns></returns>
+        public IList<IEntity> GetBy(Func<IEntity, bool>? predicate, Type? type)
+        {
+            ArgumentNullException.ThrowIfNull(predicate);
+            ArgumentNullException.ThrowIfNull(type);
+
+            if (_collections == null || !_collections.ContainsKey(type))
+            {
+                return new List<IEntity>();
+            }
+
+            var collectionContent = _collections[type];
+
+            if (collectionContent == null! || !collectionContent.Any())
+            {
+                return new List<IEntity>();
+            }
+
+            var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+
+            return !collection.Any() ? new List<IEntity>() : collection.Where(predicate).ToList();
         }
 
         /// <summary>
         /// Gets the first entity found by predicate
         /// </summary>
         /// <param name="predicate"></param>
+        /// <exception cref="ArgumentNullException">if predicate is null</exception>
         /// <returns></returns>
-        public T? Get<T>(Func<T, bool> predicate) where T : class, IEntity
+        public T? Get<T>(Func<T, bool>? predicate) where T : class, IEntity
         {
+            ArgumentNullException.ThrowIfNull(predicate);
+
             var type = typeof(T);
 
             if (_collections == null || !_collections.ContainsKey(type))
             {
                 return null;
             }
-            
+
             var collectionContent = _collections[type];
 
             if (collectionContent == null! || !collectionContent.Any())
             {
                 return null;
             }
-            
+
             var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
-            
+
+            return !collection.Any() ? null : collection.FirstOrDefault(predicate);
+        }
+
+        /// <summary>
+        /// Gets the first entity found by predicate
+        /// </summary>
+        /// <param name="predicate"></param>
+        /// <param name="type"></param>
+        /// <exception cref="ArgumentNullException">if predicate or type is null</exception>
+        /// <returns></returns>
+        public IEntity? Get(Func<IEntity, bool>? predicate, Type? type)
+        {
+            ArgumentNullException.ThrowIfNull(predicate);
+            ArgumentNullException.ThrowIfNull(type);
+
+            if (_collections == null || !_collections.ContainsKey(type))
+            {
+                return null;
+            }
+
+            var collectionContent = _collections[type];
+
+            if (collectionContent == null! || !collectionContent.Any())
+            {
+                return null;
+            }
+
+            var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+
             return !collection.Any() ? null : collection.FirstOrDefault(predicate);
         }
 
@@ -371,9 +563,37 @@ namespace SandloDb.Core
             {
                 return null;
             }
-            
+
             var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
-            
+
+            return !collection.Any() ? null : collection.FirstOrDefault(e => e.Id == id);
+        }
+
+        /// <summary>
+        /// Gets the first entity found by predicate
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="type"></param>
+        /// <exception cref="ArgumentNullException">if type is null</exception>
+        /// <returns></returns>
+        public IEntity? GetById(Guid id, Type? type)
+        {
+            ArgumentNullException.ThrowIfNull(type);
+
+            if (_collections == null || !_collections.ContainsKey(type))
+            {
+                return null;
+            }
+
+            var collectionContent = _collections[type];
+
+            if (collectionContent == null! || !collectionContent.Any())
+            {
+                return null;
+            }
+
+            var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+
             return !collection.Any() ? null : collection.FirstOrDefault(e => e.Id == id);
         }
 

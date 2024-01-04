@@ -53,7 +53,7 @@ namespace SandloDb.Unit.Tests
             //assert
             Assert.Throws<ArgumentNullException>(() => action());
         }
-        
+
         [Fact]
         public void SandloDbContext_AddMany_Ok()
         {
@@ -63,7 +63,7 @@ namespace SandloDb.Unit.Tests
                 Name = "name",
                 Description = "description"
             };
-            
+
             var entityTwo = new SandloDbTestEntity()
             {
                 Name = "nameTwo",
@@ -152,7 +152,6 @@ namespace SandloDb.Unit.Tests
             Assert.Equal(result.Updated, updateResult.Updated);
             Assert.Equal(entity.Name, updateResult.Name);
             Assert.Equal(entity.Description, updateResult.Description);
-
         }
 
         [Fact]
@@ -186,7 +185,7 @@ namespace SandloDb.Unit.Tests
             //assert
             Assert.Throws<InvalidOperationException>(() => action());
         }
-        
+
         [Fact]
         public void SandloDbContext_UpdateMany_Ok()
         {
@@ -196,7 +195,7 @@ namespace SandloDb.Unit.Tests
                 Name = "name",
                 Description = "description"
             };
-            
+
             var entityTwo = new SandloDbTestEntity()
             {
                 Name = "nameTwo",
@@ -284,7 +283,7 @@ namespace SandloDb.Unit.Tests
                 Name = "name",
                 Description = "description"
             };
-            
+
             var entityTwo = new SandloDbTestEntity()
             {
                 Name = "nameTwo",
@@ -365,7 +364,7 @@ namespace SandloDb.Unit.Tests
             //assert
             Assert.Throws<InvalidOperationException>(() => action());
         }
-        
+
         [Fact]
         public void SandloDbContext_RemoveMany_Ok()
         {
@@ -375,7 +374,7 @@ namespace SandloDb.Unit.Tests
                 Name = "name",
                 Description = "description"
             };
-            
+
             var entityTwo = new SandloDbTestEntity()
             {
                 Name = "nameTwo",
@@ -440,7 +439,7 @@ namespace SandloDb.Unit.Tests
                 Name = "name",
                 Description = "description"
             };
-            
+
             var entityTwo = new SandloDbTestEntity()
             {
                 Name = "nameTwo",
@@ -552,6 +551,19 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
+        public void SandloDbContext_Get_By_Predicate_Null_Ko()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.GetBy<SandloDbTestEntity>(null);
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
         public void SandloDbContext_Get_By_Collection_Not_Found_Ok()
         {
             //arrange
@@ -602,6 +614,19 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
+        public void SandloDbContext_Get_Predicate_Null_Ko()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.Get<SandloDbTestEntity>(null);
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
         public void SandloDbContext_Get_Collection_Not_Found_Ok()
         {
             //arrange
@@ -613,7 +638,7 @@ namespace SandloDb.Unit.Tests
             //assert
             Assert.Null(result);
         }
-        
+
         [Fact]
         public void SandloDbContext_Get_By_Id_Ok()
         {
@@ -663,7 +688,487 @@ namespace SandloDb.Unit.Tests
             Assert.Null(result);
         }
 
-        public class SandloDbTestEntity : IEntity
+        [Fact]
+        public void SandloDbContext_Get_All_By_Type_Ok()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+
+            var result = service.Add(entity);
+
+            //assert
+            Assert.NotNull(result);
+            Assert.NotEqual(Guid.Empty, result.Id);
+            Assert.NotEqual(0, result.Created);
+            Assert.NotEqual(0, result.Updated);
+            Assert.Equal(entity.Created, result.Created);
+            Assert.Equal(entity.Updated, result.Updated);
+            Assert.Equal(entity.Name, result.Name);
+            Assert.Equal(entity.Description, result.Description);
+
+            var getAllResult = service.GetAll(typeof(SandloDbTestEntity));
+
+            Assert.NotNull(getAllResult);
+            Assert.Collection(getAllResult, e =>
+            {
+                var typedEntity = e as SandloDbTestEntity;
+                Assert.NotNull(typedEntity);
+                Assert.Equal(result.Id, typedEntity.Id);
+                Assert.Equal(result.Created, typedEntity.Created);
+                Assert.Equal(result.Updated, typedEntity.Updated);
+                Assert.Equal(result.Name, typedEntity.Name);
+                Assert.Equal(result.Description, typedEntity.Description);
+            });
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_All_By_Type_Type_Null_Ko()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.GetAll(null);
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_All_By_Type_Collection_Not_Found_Ok()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var getAllResult = service.GetAll(typeof(SandloDbTestEntity));
+
+            //assert
+            Assert.NotNull(getAllResult);
+            Assert.Empty(getAllResult);
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_By_Type_Ok()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+
+            var result = service.Add(entity);
+
+            //assert
+            Assert.NotNull(result);
+            Assert.NotEqual(Guid.Empty, result.Id);
+            Assert.NotEqual(0, result.Created);
+            Assert.NotEqual(0, result.Updated);
+            Assert.Equal(entity.Created, result.Created);
+            Assert.Equal(entity.Updated, result.Updated);
+            Assert.Equal(entity.Name, result.Name);
+            Assert.Equal(entity.Description, result.Description);
+
+            var getAllResult = service.GetBy(x => x.Created != 0, typeof(SandloDbTestEntity));
+
+            Assert.NotNull(getAllResult);
+            Assert.Collection(getAllResult, e =>
+            {
+                var typedEntity = e as SandloDbTestEntity;
+
+                Assert.NotNull(typedEntity);
+                Assert.Equal(result.Id, typedEntity.Id);
+                Assert.Equal(result.Created, typedEntity.Created);
+                Assert.Equal(result.Updated, typedEntity.Updated);
+                Assert.Equal(result.Name, typedEntity.Name);
+                Assert.Equal(result.Description, typedEntity.Description);
+            });
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_By_Type_Predicate_Null_Ko()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.GetBy(null, typeof(SandloDbTestEntity));
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_By_Type_Type_Null_Ko()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.GetBy(x => x.Created != 0, null);
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_By_Type_Collection_Not_Found_Ok()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var result = service.GetBy(x => x.Created != 0, typeof(SandloDbTestEntity));
+
+            //assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_Type_Ok()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+
+            var result = service.Add(entity);
+
+            //assert
+            Assert.NotNull(result);
+            Assert.NotEqual(Guid.Empty, result.Id);
+            Assert.NotEqual(0, result.Created);
+            Assert.NotEqual(0, result.Updated);
+            Assert.Equal(entity.Created, result.Created);
+            Assert.Equal(entity.Updated, result.Updated);
+            Assert.Equal(entity.Name, result.Name);
+            Assert.Equal(entity.Description, result.Description);
+
+            var getResult = service.Get(x => x.Created != 0, typeof(SandloDbTestEntity));
+
+            Assert.NotNull(getResult);
+            var typedResult = getResult as SandloDbTestEntity;
+            Assert.NotNull(typedResult);
+            Assert.Equal(result.Id, typedResult.Id);
+            Assert.Equal(result.Created, typedResult.Created);
+            Assert.Equal(result.Updated, typedResult.Updated);
+            Assert.Equal(result.Name, typedResult.Name);
+            Assert.Equal(result.Description, typedResult.Description);
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_Type_Predicate_Null_Ko()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.Get(null, typeof(SandloDbTestEntity));
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_Type_Type_Null_Ko()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.Get(x => x.Created != 0, null);
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_By_Id_By_Type_Ok()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+
+            var result = service.Add(entity);
+
+            //assert
+            Assert.NotNull(result);
+            Assert.NotEqual(Guid.Empty, result.Id);
+            Assert.NotEqual(0, result.Created);
+            Assert.NotEqual(0, result.Updated);
+            Assert.Equal(entity.Created, result.Created);
+            Assert.Equal(entity.Updated, result.Updated);
+            Assert.Equal(entity.Name, result.Name);
+            Assert.Equal(entity.Description, result.Description);
+
+            var getResult = service.GetById(result.Id, typeof(SandloDbTestEntity));
+
+            Assert.NotNull(getResult);
+            var typedResult = getResult as SandloDbTestEntity;
+            Assert.NotNull(typedResult);
+            Assert.Equal(result.Id, typedResult.Id);
+            Assert.Equal(result.Created, typedResult.Created);
+            Assert.Equal(result.Updated, typedResult.Updated);
+            Assert.Equal(result.Name, typedResult.Name);
+            Assert.Equal(result.Description, typedResult.Description);
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_By_Id_By_Type_Type_Null_Ko()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.GetById(Guid.NewGuid(), null);
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
+        public void SandloDbContext_Get_By_Id_By_Type_Collection_Not_Found_Ok()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var result = service.GetById(Guid.NewGuid(), typeof(SandloDbTestEntity));
+
+            //assert
+            Assert.Null(result);
+        }
+        
+          [Fact]
+        public void SandloDbContext_Remove_By_Type_Ok()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+
+            var result = service.Add(entity);
+
+            //assert
+            Assert.NotNull(result);
+            Assert.NotEqual(Guid.Empty, result.Id);
+            Assert.NotEqual(0, result.Created);
+            Assert.NotEqual(0, result.Updated);
+            Assert.Equal(entity.Created, result.Created);
+            Assert.Equal(entity.Updated, result.Updated);
+            Assert.Equal(entity.Name, result.Name);
+            Assert.Equal(entity.Description, result.Description);
+
+            var deleteResult = service.Remove(result, typeof(SandloDbTestEntity));
+
+            Assert.Equal(1, deleteResult);
+        }
+
+        [Fact]
+        public void SandloDbContext_Remove_By_Type_Entity_Null_Ko()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.Remove(null, typeof(SandloDbTestEntity));
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
+        public void SandloDbContext_Remove_By_Type_Type_Null_Ko()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.Remove(entity, null);
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+        
+        [Fact]
+        public void SandloDbContext_Remove_By_Type_Collection_Not_Found_Ko()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.Remove(entity, typeof(SandloDbTestEntity));
+
+            //assert
+            Assert.Throws<InvalidOperationException>(() => action());
+        }
+
+        [Fact]
+        public void SandloDbContext_RemoveMany_By_Type_Ok()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+
+            var entityTwo = new SandloDbTestEntity()
+            {
+                Name = "nameTwo",
+                Description = "descriptionTwo"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var result = service.AddMany(new List<SandloDbTestEntity>()
+            {
+                entity, entityTwo
+            });
+
+            //assert
+            Assert.NotNull(result);
+            Assert.Collection(result, eOne =>
+                {
+                    Assert.NotEqual(Guid.Empty, eOne.Id);
+                    Assert.NotEqual(0, eOne.Created);
+                    Assert.NotEqual(0, eOne.Updated);
+                    Assert.Equal(entity.Created, eOne.Created);
+                    Assert.Equal(entity.Updated, eOne.Updated);
+                    Assert.Equal(entity.Name, eOne.Name);
+                    Assert.Equal(entity.Description, eOne.Description);
+                },
+                eTwo =>
+                {
+                    Assert.NotEqual(Guid.Empty, eTwo.Id);
+                    Assert.NotEqual(0, eTwo.Created);
+                    Assert.NotEqual(0, eTwo.Updated);
+                    Assert.Equal(entityTwo.Created, eTwo.Created);
+                    Assert.Equal(entityTwo.Updated, eTwo.Updated);
+                    Assert.Equal(entityTwo.Name, eTwo.Name);
+                    Assert.Equal(entityTwo.Description, eTwo.Description);
+                });
+
+            var deleteResult = service.RemoveMany(result.Select(x => x).ToList<IEntity>(), typeof(SandloDbTestEntity));
+
+            Assert.Equal(2, deleteResult);
+        }
+        
+        [Fact]
+        public void SandloDbContext_RemoveMany_By_Type_Entities_Null_Ko()
+        {
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.RemoveMany(null, typeof(SandloDbTestEntity));
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+        
+        [Fact]
+        public void SandloDbContext_RemoveMany_By_Type_Type_Null_Ko()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+
+            var entityTwo = new SandloDbTestEntity()
+            {
+                Name = "nameTwo",
+                Description = "descriptionTwo"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.RemoveMany(new List<IEntity>()
+            {
+                entity, entityTwo
+            }, null);
+
+            //assert
+            Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
+        public void SandloDbContext_RemoveMany_By_Type_Collection_Not_Found_Ko()
+        {
+            //arrange
+            var entity = new SandloDbTestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+
+            var entityTwo = new SandloDbTestEntity()
+            {
+                Name = "nameTwo",
+                Description = "descriptionTwo"
+            };
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            //act
+            var action = () => service.RemoveMany(new List<IEntity>()
+            {
+                entity, entityTwo
+            }, typeof(SandloDbTestEntity));
+
+            //assert
+            Assert.Throws<InvalidOperationException>(() => action());
+        }
+
+        private class SandloDbTestEntity : IEntity
         {
             public Guid Id { get; set; }
             public long Created { get; set; }
