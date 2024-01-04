@@ -42,12 +42,15 @@ internal class MaintenanceService : BackgroundService
                     {
                         var entitiesToDelete = _dbContext.GetBy(x => x.Created <= new DateTimeOffset(DateTime.UtcNow).AddMinutes(-_configuration.EntityTtlMinutes).ToUnixTimeMilliseconds(), type);
 
-                        if (entitiesToDelete.Any())
+                        if (!entitiesToDelete.Any())
                         {
-                            var deleteResult = _dbContext.RemoveMany(entitiesToDelete, type);
-                            
-                            _logger.LogInformation($"Deleted for type {type.Name} - {deleteResult} entities");
+                            _logger.LogInformation($"No entities for type {type.Name} found.");
+                            continue;
                         }
+                        
+                        var deleteResult = _dbContext.RemoveMany(entitiesToDelete, type);
+                            
+                        _logger.LogInformation($"Deleted for type {type.Name} - {deleteResult} entities.");
                     }
                 }
             }
