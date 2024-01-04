@@ -1,7 +1,7 @@
 # sandlo-db
 An in-memory database written totally in .NET
 
-**How can i use it?**
+**How can I use it?**
 
 You should reference the project and just the following line in your startup part (Program.cs or whatever you prefer):
 
