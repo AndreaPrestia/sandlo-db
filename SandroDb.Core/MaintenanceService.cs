@@ -1,9 +1,11 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace SandloDb.Core;
 
+[ExcludeFromCodeCoverage]
 internal class MaintenanceService : BackgroundService
 {
     private readonly ILogger<MaintenanceService> _logger;
