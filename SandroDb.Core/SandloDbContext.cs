@@ -9,6 +9,9 @@ namespace SandloDb.Core
         private ConcurrentDictionary<Type, ConcurrentBag<object>>? _collections = new();
         private long CurrentTimestamp => new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
 
+        /// <summary>
+        /// Current types stored in SandloDbContext
+        /// </summary>
         public IList<Type> CurrentTypes => _collections != null && _collections.Any()
             ? _collections.Select(x => x.Key).ToList()
             : new List<Type>();
