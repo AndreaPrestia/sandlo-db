@@ -32,12 +32,12 @@ This is just a test project, I aim to expand it and make it usable :)
 
 **TODO**
 
-- improve code quality
-- manage max memory allocation and memory cleanup of older entities, with specific policy, when the threshold is reached
-- expand code coverage with unit testing
-- write benchmarking
-- write safety tests
-- write robustness tests (with a lot of concurrent requests shouldn't be crash, corrupted or inconsistent data, race conditions not satisfied and so on)
+- improving code quality
+- managing max memory allocation and memory cleanup of older entities, with specific policy, when the threshold is reached
+- expanding code coverage with unit testing
+- writing safety tests
+- writing robustness tests (with a lot of concurrent requests shouldn't be crash, corrupted or inconsistent data, race conditions not satisfied and so on)
+- writing benchmarking
 
   
 
