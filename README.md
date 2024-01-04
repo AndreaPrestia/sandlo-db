@@ -1,5 +1,5 @@
 # sandlo-db
-An in-memory database written totally in .NET
+An in-memory database totally written in .NET
 
 **How can I use it?**
 
