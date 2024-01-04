@@ -33,6 +33,7 @@ This is a test project, i'd like to expand it with:
 - better code quality
 - apply DRY where needed
 - check for thread safety in the dbcontext
+- manage max memory allocation and memory cleanup of older entities, with specific policy, when reached threshold 
 
   
 
