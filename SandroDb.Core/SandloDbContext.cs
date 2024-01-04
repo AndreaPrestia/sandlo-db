@@ -7,6 +7,7 @@ namespace SandloDb.Core
     public class SandloDbContext
     {
         private ConcurrentDictionary<Type, ConcurrentBag<object>>? _collections = new();
+        private long CurrentTimestamp => new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
 
         public IList<Type> CurrentTypes => _collections != null && _collections.Any()
             ? _collections.Select(x => x.Key).ToList()
@@ -34,8 +35,8 @@ namespace SandloDb.Core
             var collection = _collections[type];
 
             entity.Id = Guid.NewGuid();
-            entity.Created = GetTimestamp();
-            entity.Updated = GetTimestamp();
+            entity.Created = CurrentTimestamp;
+            entity.Updated = CurrentTimestamp;
             collection.Add(entity);
 
             _collections[type] = collection;
@@ -67,8 +68,8 @@ namespace SandloDb.Core
             foreach (var entity in entities)
             {
                 entity.Id = Guid.NewGuid();
-                entity.Created = GetTimestamp();
-                entity.Updated = GetTimestamp();
+                entity.Created = CurrentTimestamp;
+                entity.Updated = CurrentTimestamp;
                 collection.Add(entity);
             }
 
@@ -122,7 +123,7 @@ namespace SandloDb.Core
                 throw new InvalidOperationException("More than one entity found.");
             }
 
-            entity.Updated = GetTimestamp();
+            entity.Updated = CurrentTimestamp;
 
             return entity;
         }
@@ -174,7 +175,7 @@ namespace SandloDb.Core
 
             foreach (var entity in entities)
             {
-                entity.Updated = GetTimestamp();
+                entity.Updated = CurrentTimestamp;
             }
 
             return entities;
@@ -596,7 +597,5 @@ namespace SandloDb.Core
 
             return !collection.Any() ? null : collection.FirstOrDefault(e => e.Id == id);
         }
-
-        private long GetTimestamp() => new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
     }
 }
