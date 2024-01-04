@@ -13,7 +13,7 @@ See the Tests directory to find the unit tests and how to use it :-P.
 
 **Configuration**
 
-Add this section in your appsettings.json. 
+Add this section to your appsettings.json. 
 
 ```
 "SandloDb": {
