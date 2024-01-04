@@ -33,7 +33,7 @@ This is just a test project, I aim to expand it and make it usable :)
 **TODO**
 
 - improve code quality
-- manage max memory allocation and memory cleanup of older entities, with specific policy, when reached threshold
+- manage max memory allocation and memory cleanup of older entities, with specific policy, when the threshold is reached
 - expand code coverage with unit testing
 - make benchmarking
 - make safety tests
