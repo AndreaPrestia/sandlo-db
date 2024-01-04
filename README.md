@@ -13,15 +13,13 @@ See the Tests directory to find the unit tests and how to use it :-P.
 
 **Configuration**
 
-Add this part in appsettings.json. 
+Add this section in your appsettings.json. 
 
 ```
 "SandloDb": {
     "EntityTtlMinutes": 50
   }
 ```
-The configuration is composed of:
-
 Property | Type | Context |
 --- | --- | --- |
 EntityTtlMinutes | int | The TTL of the in-memory entities from their creation date. |
