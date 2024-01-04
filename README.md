@@ -35,9 +35,9 @@ This is just a test project, I aim to expand it and make it usable :)
 - improve code quality
 - manage max memory allocation and memory cleanup of older entities, with specific policy, when the threshold is reached
 - expand code coverage with unit testing
-- make benchmarking
-- make safety tests
-- make robustness tests (with a lot of concurrent requests shouldn't be crash, corrupted or inconsistent data, race conditions not satisfied and so on)
+- write benchmarking
+- write safety tests
+- write robustness tests (with a lot of concurrent requests shouldn't be crash, corrupted or inconsistent data, race conditions not satisfied and so on)
 
   
 
