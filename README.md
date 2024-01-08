@@ -36,6 +36,7 @@ This is just a test project, I aim to expand it and make it usable :)
 - safety tests
 - robustness tests (the receipt of concurrent requests should not result in crash, corrupted or inconsistent data, race conditions not satisfied and so on)
 - benchmarking
+- try to design clusterization of it
 
   
 
