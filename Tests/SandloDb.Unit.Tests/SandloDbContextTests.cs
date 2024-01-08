@@ -42,6 +42,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
+        [Trait("Category", "Concurrency")]
         public void SandloDbContext_Add_MultiThread_Ok()
         {
             //arrange
@@ -159,6 +160,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
+        [Trait("Category", "Concurrency")]
         public void SandloDbContext_AddMany_MultiThread_Ok()
         {
             //arrange
