@@ -45,17 +45,27 @@ namespace SandloDb.Unit.Tests
         public void SandloDbContext_Add_MultiThread_Ok()
         {
             //arrange
+            var parallelTasks = 20;
+
+            var tasks = new Task[parallelTasks];
+
             var service = _host.Services.GetRequiredService<SandloDbContext>();
 
-            Parallel.For(0, 20, i =>
+            for (var i = 0; i < parallelTasks; i++)
             {
-                service.Add(new SandloDbTestEntity()
+                var index = i;
+                tasks[i] = Task.Factory.StartNew(() =>
                 {
-                    Name = $"name-{i}",
-                    Description = $"description-{i}",
-                    Index = i
+                    service.Add(new SandloDbTestEntity()
+                    {
+                        Name = $"name-{index}",
+                        Description = $"description-{index}",
+                        Index = index
+                    });
                 });
-            });
+            }
+
+            Task.WaitAll(tasks);
 
             //act
             var result = service.GetAll<SandloDbTestEntity>();
@@ -152,15 +162,17 @@ namespace SandloDb.Unit.Tests
         public void SandloDbContext_AddMany_MultiThread_Ok()
         {
             //arrange
-            var service = _host.Services.GetRequiredService<SandloDbContext>();
+            var parallelTasks = 20;
+            var chunkSize = 20;
 
-            var elementsToAdd = Enumerable.Range(0, 400).Select((e, j) => new SandloDbTestEntity()
-            {
-                Description = $"description-{j}",
-                Name = $"name-{j}",
-                Index = j
-            }).ToList();
-            
+            var elementsToAdd = Enumerable.Range(0, chunkSize * parallelTasks).Select((e, j) =>
+                new SandloDbTestEntity()
+                {
+                    Description = $"description-{j}",
+                    Name = $"name-{j}",
+                    Index = j
+                }).ToList();
+
             var chunkedEntities = elementsToAdd
                 .Select((x, j) => new SandloDbTestEntity()
                 {
@@ -171,18 +183,25 @@ namespace SandloDb.Unit.Tests
                 .GroupBy(x => x.Index / 20)
                 .Select(x => x.Select(v => v).ToList())
                 .ToList();
-            
-            Parallel.For(0, 20, i =>
+
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            var tasks = new Task[parallelTasks];
+
+            for (var i = 0; i < parallelTasks; i++)
             {
-                service.AddMany(chunkedEntities[i]);
-            });
+                var index = i;
+                tasks[i] = Task.Factory.StartNew(() => { service.AddMany(chunkedEntities[index]); });
+            }
+
+            Task.WaitAll(tasks);
 
             //act
             var result = service.GetAll<SandloDbTestEntity>();
 
             //assert
             Assert.NotNull(result);
-            Assert.Equal(400, result.Count);
+            Assert.Equal(chunkSize * parallelTasks, result.Count);
             var orderedResult = result.OrderBy(x => x.Index).ToList();
             for (var i = 0; i < orderedResult.Count; i++)
             {
