@@ -42,6 +42,39 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
+        public void SandloDbContext_Add_MultiThread_Ok()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            Parallel.For(0, 20, i =>
+            {
+                service.Add(new SandloDbTestEntity()
+                {
+                    Name = $"name-{i}",
+                    Description = $"description-{i}",
+                    Index = i
+                });
+            });
+
+            //act
+            var result = service.GetAll<SandloDbTestEntity>();
+
+            //assert
+            Assert.NotNull(result);
+            Assert.Equal(20, result.Count);
+            var orderedResult = result.OrderBy(x => x.Index).ToList();
+            for (var i = 0; i < orderedResult.Count; i++)
+            {
+                Assert.NotEqual(Guid.Empty, orderedResult[i].Id);
+                Assert.NotEqual(0, orderedResult[i].Created);
+                Assert.NotEqual(0, orderedResult[i].Updated);
+                Assert.Equal($"name-{i}", orderedResult[i].Name);
+                Assert.Equal($"description-{i}", orderedResult[i].Description);
+            }
+        }
+
+        [Fact]
         public void SandloDbContext_Add_Entity_Null_Ko()
         {
             //arrange
@@ -113,6 +146,52 @@ namespace SandloDb.Unit.Tests
 
             //assert
             Assert.Throws<ArgumentNullException>(() => action());
+        }
+
+        [Fact]
+        public void SandloDbContext_AddMany_MultiThread_Ok()
+        {
+            //arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+
+            var elementsToAdd = Enumerable.Range(0, 400).Select((e, j) => new SandloDbTestEntity()
+            {
+                Description = $"description-{j}",
+                Name = $"name-{j}",
+                Index = j
+            }).ToList();
+            
+            var chunkedEntities = elementsToAdd
+                .Select((x, j) => new SandloDbTestEntity()
+                {
+                    Index = j,
+                    Description = x.Description,
+                    Name = x.Name
+                })
+                .GroupBy(x => x.Index / 20)
+                .Select(x => x.Select(v => v).ToList())
+                .ToList();
+            
+            Parallel.For(0, 20, i =>
+            {
+                service.AddMany(chunkedEntities[i]);
+            });
+
+            //act
+            var result = service.GetAll<SandloDbTestEntity>();
+
+            //assert
+            Assert.NotNull(result);
+            Assert.Equal(400, result.Count);
+            var orderedResult = result.OrderBy(x => x.Index).ToList();
+            for (var i = 0; i < orderedResult.Count; i++)
+            {
+                Assert.NotEqual(Guid.Empty, orderedResult[i].Id);
+                Assert.NotEqual(0, orderedResult[i].Created);
+                Assert.NotEqual(0, orderedResult[i].Updated);
+                Assert.Equal($"name-{i}", orderedResult[i].Name);
+                Assert.Equal($"description-{i}", orderedResult[i].Description);
+            }
         }
 
         [Fact]
@@ -965,8 +1044,8 @@ namespace SandloDb.Unit.Tests
             //assert
             Assert.Null(result);
         }
-        
-          [Fact]
+
+        [Fact]
         public void SandloDbContext_Remove_By_Type_Ok()
         {
             //arrange
@@ -1028,7 +1107,7 @@ namespace SandloDb.Unit.Tests
             //assert
             Assert.Throws<ArgumentNullException>(() => action());
         }
-        
+
         [Fact]
         public void SandloDbContext_Remove_By_Type_Collection_Not_Found_Ko()
         {
@@ -1099,7 +1178,7 @@ namespace SandloDb.Unit.Tests
 
             Assert.Equal(2, deleteResult);
         }
-        
+
         [Fact]
         public void SandloDbContext_RemoveMany_By_Type_Entities_Null_Ko()
         {
@@ -1111,7 +1190,7 @@ namespace SandloDb.Unit.Tests
             //assert
             Assert.Throws<ArgumentNullException>(() => action());
         }
-        
+
         [Fact]
         public void SandloDbContext_RemoveMany_By_Type_Type_Null_Ko()
         {
@@ -1175,6 +1254,7 @@ namespace SandloDb.Unit.Tests
             public long Updated { get; set; }
             public string? Name { get; set; }
             public string? Description { get; set; }
+            public int Index { get; set; }
         }
     }
 }
