@@ -6,7 +6,7 @@ An in-memory database totally written in .NET
 You should reference the project and just the following line in your startup part (Program.cs or whatever you prefer):
 
 ```
-builder.AddSandloDb();
+builder.AddSandloDbContext();
 ```
 
 See the Tests directory to find the unit tests and how to use it :-P.
