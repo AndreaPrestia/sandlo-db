@@ -7,7 +7,7 @@ namespace SandloDb.Core
     [ExcludeFromCodeCoverage]
     public static class Extensions
     {
-        public static void AddSandloDb(this IHostBuilder builder)
+        public static void AddSandloDbContext(this IHostBuilder builder)
         {
             builder.ConfigureServices((context, services) =>
             {
