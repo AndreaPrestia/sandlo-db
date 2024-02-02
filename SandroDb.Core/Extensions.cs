@@ -15,6 +15,7 @@ namespace SandloDb.Core
                     SandloDbConfiguration.SandloDb));
                 services.AddSingleton<SandloDbContext>();
                 services.AddHostedService<MaintenanceService>();
+                services.AddHostedService<MemoryManagerService>();
             });
         }
     }
