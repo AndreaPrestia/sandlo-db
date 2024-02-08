@@ -252,7 +252,7 @@ namespace SandloDb.Unit.Tests
             Assert.NotNull(updateResult);
             Assert.Equal(entityToUpdate.Id, updateResult.Id);
             Assert.Equal(entityToUpdate.Created, updateResult.Created);
-            Assert.NotEqual(entityToUpdate.Updated, updateResult.Updated);
+            Assert.Equal(entityToUpdate.Updated, updateResult.Updated);
             Assert.Equal(entityToUpdate.Name, updateResult.Name);
             Assert.Equal(entityToUpdate.Description, updateResult.Description);
         }
@@ -276,6 +276,7 @@ namespace SandloDb.Unit.Tests
             //arrange
             var entity = new SandloDbTestEntity()
             {
+                Id = Guid.NewGuid(),
                 Name = "name",
                 Description = "description"
             };
@@ -367,7 +368,7 @@ namespace SandloDb.Unit.Tests
                 {
                     Assert.Equal(entityUpdated.Id, eOne.Id);
                     Assert.Equal(entityUpdated.Created, eOne.Created);
-                    Assert.NotEqual(entityUpdated.Updated, eOne.Updated);
+                    Assert.Equal(entityUpdated.Updated, eOne.Updated);
                     Assert.Equal(entityUpdated.Name, eOne.Name);
                     Assert.Equal(entityUpdated.Description, eOne.Description);
                 },
@@ -375,7 +376,7 @@ namespace SandloDb.Unit.Tests
                 {
                     Assert.Equal(entityTwoUpdated.Id, eTwo.Id);
                     Assert.Equal(entityTwoUpdated.Created, eTwo.Created);
-                    Assert.NotEqual(entityTwoUpdated.Updated, eTwo.Updated);
+                    Assert.Equal(entityTwoUpdated.Updated, eTwo.Updated);
                     Assert.Equal(entityTwoUpdated.Name, eTwo.Name);
                     Assert.Equal(entityTwoUpdated.Description, eTwo.Description);
                 });

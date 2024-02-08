@@ -113,6 +113,11 @@ namespace SandloDb.Core
             {
                 ArgumentNullException.ThrowIfNull(entity);
 
+                if (entity.Id == Guid.Empty)
+                {
+                    throw new ArgumentException("No id provided");
+                }
+
                 var type = typeof(T);
 
                 if (_collections == null)
@@ -127,44 +132,25 @@ namespace SandloDb.Core
                     throw new InvalidOperationException($"Collection {type.Name} not found.");
                 }
 
-                var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
+                var collection = collectionContent.OfType<T>().ToList();
 
                 if (collection == null)
                 {
                     throw new InvalidOperationException(nameof(collection));
                 }
 
-                var foundedElements = collection.Where(e => e.Id == entity.Id).ToList();
+                var foundedElementIndex =  collection.FindIndex(e => e.Id == entity.Id);
 
-                if (foundedElements == null || !foundedElements.Any())
+                if (foundedElementIndex < 0)
                 {
                     throw new InvalidOperationException("Entity not found.");
                 }
 
-                if (foundedElements.Count > 1)
-                {
-                    throw new InvalidOperationException("More than one entity found.");
-                }
+                entity.Updated = CurrentTimestamp;
 
-                var foundElement = foundedElements.FirstOrDefault();
+                collection[foundedElementIndex] = entity;
 
-                if (foundElement == null)
-                {
-                    throw new ArgumentNullException($"Cannot find entity {entity.Id}");
-                }
-
-                var properties = type.GetProperties();
-
-                foreach (var property in properties)
-                {
-                    var value = property.GetValue(entity);
-
-                    property.SetValue(foundElement, value);
-                }
-
-                foundElement.Updated = CurrentTimestamp;
-
-                return foundElement;
+                return entity;
             }
             finally
             {
@@ -201,47 +187,33 @@ namespace SandloDb.Core
                     throw new InvalidOperationException($"Collection {type.Name} not found.");
                 }
 
-                var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
+                var collection = collectionContent.OfType<T>().ToList();
 
                 if (collection == null)
                 {
                     throw new InvalidOperationException(nameof(collection));
                 }
 
-                var foundedElements = collection.Where(e => entities.Select(et => et.Id).Contains(e.Id)).ToList();
-
-                if (foundedElements == null || !foundedElements.Any())
-                {
-                    throw new InvalidOperationException("Entity not found.");
-                }
-
-                if (foundedElements.Count > entities.Count)
-                {
-                    throw new InvalidOperationException("More than one entity found.");
-                }
-
-                var properties = type.GetProperties();
-
                 foreach (var entity in entities)
                 {
-                    var foundEntity = foundedElements.FirstOrDefault(e => e.Id == entity.Id);
-
-                    if (foundEntity == null)
+                    if (entity.Id == Guid.Empty)
                     {
-                        throw new ArgumentNullException($"Cannot find entity {entity.Id}");
+                        throw new ArgumentException("No id provided");
+                    }
+                    
+                    var foundedElementIndex =  collection.FindIndex(e => e.Id == entity.Id);
+
+                    if (foundedElementIndex < 0)
+                    {
+                        throw new InvalidOperationException("Entity not found.");
                     }
 
-                    foreach (var property in properties)
-                    {
-                        var value = property.GetValue(entity);
+                    entity.Updated = CurrentTimestamp;
 
-                        property.SetValue(foundEntity, value);
-                    }
-
-                    foundEntity.Updated = CurrentTimestamp;
+                    collection[foundedElementIndex] = entity;
                 }
 
-                return foundedElements;
+                return entities;
             }
             finally
             {
@@ -277,7 +249,7 @@ namespace SandloDb.Core
                     throw new InvalidOperationException($"Collection {type.Name} not found.");
                 }
 
-                var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
+                var collection = collectionContent.OfType<T>().ToList();
 
                 if (collection == null)
                 {
@@ -291,9 +263,9 @@ namespace SandloDb.Core
                     throw new InvalidOperationException("Entity not found.");
                 }
 
-                collection = new ConcurrentBag<T>(collection.Where(e => e.Id != entity.Id).ToList());
+                collection = collection.Where(e => e.Id != entity.Id).ToList();
 
-                if (collection.IsEmpty)
+                if (!collection.Any())
                 {
                     _collections.TryRemove(type, out _);
                 }
@@ -334,7 +306,7 @@ namespace SandloDb.Core
                     throw new InvalidOperationException($"Collection {type.Name} not found.");
                 }
 
-                var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+                var collection = collectionContent.OfType<IEntity>().ToList();
 
                 if (collection == null)
                 {
@@ -348,9 +320,9 @@ namespace SandloDb.Core
                     throw new InvalidOperationException("Entity not found.");
                 }
 
-                collection = new ConcurrentBag<IEntity>(collection.Where(e => e.Id != entity.Id));
+                collection = collection.Where(e => e.Id != entity.Id).ToList();
 
-                if (collection.IsEmpty)
+                if (collection.Count == 0)
                 {
                     _collections.TryRemove(type, out _);
                 }
@@ -391,7 +363,7 @@ namespace SandloDb.Core
                     throw new InvalidOperationException($"Collection {type.Name} not found.");
                 }
 
-                var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
+                var collection = collectionContent.OfType<T>().ToList();
 
                 if (collection == null)
                 {
@@ -405,10 +377,9 @@ namespace SandloDb.Core
                     throw new InvalidOperationException("Entities not found.");
                 }
 
-                collection =
-                    new ConcurrentBag<T>(collection.Where(e => !entities.Select(et => et.Id).Contains(e.Id)).ToList());
+                collection = collection.Where(e => !entities.Select(et => et.Id).Contains(e.Id)).ToList();
 
-                if (collection.IsEmpty)
+                if (collection.Count == 0)
                 {
                     _collections.TryRemove(type, out _);
                 }
@@ -449,7 +420,7 @@ namespace SandloDb.Core
                     throw new InvalidOperationException($"Collection {type.Name} not found.");
                 }
 
-                var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+                var collection = collectionContent.OfType<IEntity>().ToList();
 
                 if (collection == null)
                 {
@@ -463,10 +434,9 @@ namespace SandloDb.Core
                     throw new InvalidOperationException("Entities not found.");
                 }
 
-                collection =
-                    new ConcurrentBag<IEntity>(collection.Where(e => !entities.Select(et => et.Id).Contains(e.Id)));
+                collection = collection.Where(e => !entities.Select(et => et.Id).Contains(e.Id)).ToList();
 
-                if (collection.IsEmpty)
+                if (collection.Count == 0)
                 {
                     _collections.TryRemove(type, out _);
                 }
@@ -502,9 +472,9 @@ namespace SandloDb.Core
                     return new List<T>();
                 }
 
-                var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
+                var collection = collectionContent.OfType<T>().ToList();
 
-                return !collection.Any() ? new List<T>() : collection.ToList();
+                return collection.Count == 0 ? new List<T>() : collection.ToList();
             }
             finally
             {
@@ -538,9 +508,9 @@ namespace SandloDb.Core
                     return new List<IEntity>();
                 }
 
-                var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+                var collection = collectionContent.OfType<IEntity>().ToList();
 
-                return !collection.Any() ? new List<IEntity>() : collection.ToList();
+                return collection.Count == 0 ? new List<IEntity>() : collection.ToList();
             }
             finally
             {
@@ -574,9 +544,9 @@ namespace SandloDb.Core
                     return new List<T>();
                 }
 
-                var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
+                var collection = collectionContent.OfType<T>().ToList();
 
-                return !collection.Any() ? new List<T>() : collection.Where(predicate).ToList();
+                return collection.Count == 0 ? new List<T>() : collection.Where(predicate).ToList();
             }
             finally
             {
@@ -611,9 +581,9 @@ namespace SandloDb.Core
                     return new List<IEntity>();
                 }
 
-                var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+                var collection = collectionContent.OfType<IEntity>().ToList();
 
-                return !collection.Any() ? new List<IEntity>() : collection.Where(predicate).ToList();
+                return collection.Count == 0 ? new List<IEntity>() : collection.Where(predicate).ToList();
             }
             finally
             {
@@ -648,9 +618,9 @@ namespace SandloDb.Core
                     return null;
                 }
 
-                var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
+                var collection = collectionContent.OfType<T>().ToList();
 
-                return !collection.Any() ? null : collection.FirstOrDefault(predicate);
+                return collection.Count == 0 ? null : collection.FirstOrDefault(predicate);
             }
             finally
             {
@@ -685,9 +655,9 @@ namespace SandloDb.Core
                     return null;
                 }
 
-                var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+                var collection = collectionContent.OfType<IEntity>().ToList();
 
-                return !collection.Any() ? null : collection.FirstOrDefault(predicate);
+                return collection.Count == 0 ? null : collection.FirstOrDefault(predicate);
             }
             finally
             {
@@ -719,9 +689,9 @@ namespace SandloDb.Core
                     return null;
                 }
 
-                var collection = new ConcurrentBag<T>(collectionContent.OfType<T>());
+                var collection = collectionContent.OfType<T>().ToList();
 
-                return !collection.Any() ? null : collection.FirstOrDefault(e => e.Id == id);
+                return collection.Count == 0 ? null : collection.FirstOrDefault(e => e.Id == id);
             }
             finally
             {
@@ -755,9 +725,9 @@ namespace SandloDb.Core
                     return null;
                 }
 
-                var collection = new ConcurrentBag<IEntity>(collectionContent.OfType<IEntity>());
+                var collection = collectionContent.OfType<IEntity>().ToList();
 
-                return !collection.Any() ? null : collection.FirstOrDefault(e => e.Id == id);
+                return collection.Count == 0 ? null : collection.FirstOrDefault(e => e.Id == id);
             }
             finally
             {
