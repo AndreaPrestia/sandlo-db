@@ -238,17 +238,23 @@ namespace SandloDb.Unit.Tests
             Assert.Equal(entity.Name, result.Name);
             Assert.Equal(entity.Description, result.Description);
 
-            result.Name = "Updated Name";
-            result.Description = "Updated Description";
+            var entityToUpdate = new SandloDbTestEntity()
+            {
+                Id = result.Id,
+                Created = result.Created,
+                Name = "Updated Name",
+                Description = "Updated Description",
+                Index = result.Index
+            };
 
-            var updateResult = service.Update(result);
+            var updateResult = service.Update(entityToUpdate);
 
             Assert.NotNull(updateResult);
-            Assert.Equal(result.Id, updateResult.Id);
-            Assert.Equal(result.Created, updateResult.Created);
-            Assert.Equal(result.Updated, updateResult.Updated);
-            Assert.Equal(entity.Name, updateResult.Name);
-            Assert.Equal(entity.Description, updateResult.Description);
+            Assert.Equal(entityToUpdate.Id, updateResult.Id);
+            Assert.Equal(entityToUpdate.Created, updateResult.Created);
+            Assert.NotEqual(entityToUpdate.Updated, updateResult.Updated);
+            Assert.Equal(entityToUpdate.Name, updateResult.Name);
+            Assert.Equal(entityToUpdate.Description, updateResult.Description);
         }
 
         [Fact]
@@ -290,13 +296,15 @@ namespace SandloDb.Unit.Tests
             var entity = new SandloDbTestEntity()
             {
                 Name = "name",
-                Description = "description"
+                Description = "description",
+                Index = 1
             };
 
             var entityTwo = new SandloDbTestEntity()
             {
                 Name = "nameTwo",
-                Description = "descriptionTwo"
+                Description = "descriptionTwo",
+                Index = 2
             };
 
             var service = _host.Services.GetRequiredService<SandloDbContext>();
@@ -331,30 +339,45 @@ namespace SandloDb.Unit.Tests
                     Assert.Equal(entityTwo.Description, eTwo.Description);
                 });
 
-            foreach (var e in result)
+            var entityUpdated = new SandloDbTestEntity()
             {
-                e.Name = $"Updated {e.Name}";
-                e.Description = $"Updated {e.Description}";
-            }
+                Id = entity.Id,
+                Created = entity.Created,
+                Index = entity.Index,
+                Name = "Updated name",
+                Description = "Updated description"
+            };
 
-            var updateResult = service.UpdateMany(result);
+            var entityTwoUpdated = new SandloDbTestEntity()
+            {
+                Id = entityTwo.Id,
+                Created = entityTwo.Created,
+                Index = entityTwo.Index,
+                Name = "Updated nameTwo",
+                Description = "Updated descriptionTwo"
+            };
+            
+            var updateResult = service.UpdateMany(new List<SandloDbTestEntity>()
+            {
+                entityUpdated, entityTwoUpdated
+            });
 
             Assert.NotNull(updateResult);
-            Assert.Collection(updateResult, eOne =>
+            Assert.Collection(updateResult.OrderBy(x => x.Index).ToList(), eOne =>
                 {
-                    Assert.Equal(entity.Id, eOne.Id);
-                    Assert.Equal(entity.Created, eOne.Created);
-                    Assert.Equal(entity.Updated, eOne.Updated);
-                    Assert.Equal(entity.Name, eOne.Name);
-                    Assert.Equal(entity.Description, eOne.Description);
+                    Assert.Equal(entityUpdated.Id, eOne.Id);
+                    Assert.Equal(entityUpdated.Created, eOne.Created);
+                    Assert.NotEqual(entityUpdated.Updated, eOne.Updated);
+                    Assert.Equal(entityUpdated.Name, eOne.Name);
+                    Assert.Equal(entityUpdated.Description, eOne.Description);
                 },
                 eTwo =>
                 {
-                    Assert.Equal(entityTwo.Id, eTwo.Id);
-                    Assert.Equal(entityTwo.Created, eTwo.Created);
-                    Assert.Equal(entityTwo.Updated, eTwo.Updated);
-                    Assert.Equal(entityTwo.Name, eTwo.Name);
-                    Assert.Equal(entityTwo.Description, eTwo.Description);
+                    Assert.Equal(entityTwoUpdated.Id, eTwo.Id);
+                    Assert.Equal(entityTwoUpdated.Created, eTwo.Created);
+                    Assert.NotEqual(entityTwoUpdated.Updated, eTwo.Updated);
+                    Assert.Equal(entityTwoUpdated.Name, eTwo.Name);
+                    Assert.Equal(entityTwoUpdated.Description, eTwo.Description);
                 });
         }
 
@@ -1363,35 +1386,35 @@ namespace SandloDb.Unit.Tests
                 Assert.Equal($"description-{i}-updated", orderedResult[i].Description);
             }
             
-            // chunkedEntities = orderedResult
-            //     .Select((x, j) => new SandloDbTestEntity()
-            //     {
-            //         Index = x.Index,
-            //         Description = x.Description,
-            //         Name = x.Name,
-            //         Id = x.Id,
-            //         Created = x.Created,
-            //         Updated = x.Updated
-            //     })
-            //     .GroupBy(x => x.Index / 20)
-            //     .Select(x => x.Select(v => v).ToList())
-            //     .ToList();
-            //
-            // tasks = new Task[parallelTasks];
-            //
-            // for (var i = 0; i < parallelTasks; i++)
-            // {
-            //     var index = i;
-            //     tasks[i] = Task.Factory.StartNew(() => { service.RemoveMany(chunkedEntities[index]); });
-            // }
-            //
-            // Task.WaitAll(tasks);
-            //
-            // result = service.GetAll<SandloDbTestEntity>();
-            //
-            // //assert
-            // Assert.NotNull(result);
-            // Assert.Empty(result);
+            chunkedEntities = orderedResult
+                .Select((x, j) => new SandloDbTestEntity()
+                {
+                    Index = x.Index,
+                    Description = x.Description,
+                    Name = x.Name,
+                    Id = x.Id,
+                    Created = x.Created,
+                    Updated = x.Updated
+                })
+                .GroupBy(x => x.Index / 20)
+                .Select(x => x.Select(v => v).ToList())
+                .ToList();
+            
+            tasks = new Task[parallelTasks];
+            
+            for (var i = 0; i < parallelTasks; i++)
+            {
+                var index = i;
+                tasks[i] = Task.Factory.StartNew(() => { service.RemoveMany(chunkedEntities[index]); });
+            }
+            
+            Task.WaitAll(tasks);
+            
+            result = service.GetAll<SandloDbTestEntity>();
+            
+            //assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
         }
 
         private class SandloDbTestEntity : IEntity
