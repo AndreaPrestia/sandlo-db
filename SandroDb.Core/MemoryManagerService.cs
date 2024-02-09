@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace SandloDb.Core;
 
@@ -8,21 +7,20 @@ internal sealed class MemoryManagerService : BackgroundService
 {
     private readonly ILogger<MemoryManagerService> _logger;
     private readonly SandloDbContext _dbContext;
-    private readonly SandloDbConfiguration _configuration;
 
-    public MemoryManagerService(ILogger<MemoryManagerService> logger, SandloDbContext dbContext, IOptionsMonitor<SandloDbConfiguration> optionsMonitor)
+    public MemoryManagerService(ILogger<MemoryManagerService> logger, SandloDbContext dbContext)
     {
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(dbContext);
-        ArgumentNullException.ThrowIfNull(optionsMonitor);
 
         _logger = logger;
         _dbContext = dbContext;
-        _configuration = optionsMonitor.CurrentValue;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var entityTtlMinutes = SandloDbConfiguration.SandloDbOptions != null ? SandloDbConfiguration.SandloDbOptions.EntityTtlMinutes : 5;
+
         var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
@@ -40,7 +38,7 @@ internal sealed class MemoryManagerService : BackgroundService
                 {
                     foreach (var type in availableTypes)
                     {
-                        var entitiesToDelete = _dbContext.GetBy(x => x.Created <= new DateTimeOffset(DateTime.UtcNow).AddMinutes(-_configuration.EntityTtlMinutes).ToUnixTimeMilliseconds(), type);
+                        var entitiesToDelete = _dbContext.GetBy(x => x.Created <= new DateTimeOffset(DateTime.UtcNow).AddMinutes(-entityTtlMinutes).ToUnixTimeMilliseconds(), type);
 
                         if (!entitiesToDelete.Any())
                         {

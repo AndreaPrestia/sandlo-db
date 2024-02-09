@@ -7,12 +7,11 @@ namespace SandloDb.Core
     [ExcludeFromCodeCoverage]
     public static class Extensions
     {
-        public static void AddSandloDbContext(this IHostBuilder builder)
+        public static void AddSandloDbContext(this IHostBuilder builder, SandloDbOptions? sandloDbOptions = null)
         {
-            builder.ConfigureServices((context, services) =>
+            builder.ConfigureServices((_, services) =>
             {
-                services.Configure<SandloDbConfiguration>(context.Configuration.GetSection(
-                    SandloDbConfiguration.SandloDb));
+                SandloDbConfiguration.SandloDbOptions = sandloDbOptions;
                 services.AddSingleton<SandloDbContext>();
                 services.AddHostedService<MaintenanceService>();
                 services.AddHostedService<MemoryManagerService>();

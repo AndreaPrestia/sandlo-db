@@ -6,23 +6,21 @@ An in-memory database totally written in .NET
 You should reference the project and just the following line in your startup part (Program.cs or whatever you prefer):
 
 ```
-builder.AddSandloDbContext();
+builder.AddSandloDbContext(new SandloDbOptions()
+{
+    EntityTtlMinutes = 10
+});
 ```
+
+As you can see the AddSandloDbContext takes as input parameter an object of type **SandloDbOptions**. It is not mandatory.
+
+**SandloDbOptions**
+
+Property | Type | Context                                                      | Default value |
+--- | --- |--------------------------------------------------------------|--------------|
+EntityTtlMinutes | int | The TTL of the in-memory entities from their creation date.  | 5            |  
 
 See the Tests directory to find the unit tests and how to use it :-P.
-
-**Configuration**
-
-Add this section to your appsettings.json. 
-
-```
-"SandloDb": {
-    "EntityTtlMinutes": 50
-  }
-```
-Property | Type | Context |
---- | --- | --- |
-EntityTtlMinutes | int | The TTL of the in-memory entities from their creation date. |
 
 **Conclusion**
 
