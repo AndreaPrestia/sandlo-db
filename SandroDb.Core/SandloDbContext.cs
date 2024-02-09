@@ -256,21 +256,21 @@ namespace SandloDb.Core
                     throw new InvalidOperationException(nameof(collection));
                 }
 
-                var count = collection.Count(e => e.Id == entity.Id);
+                var index = collection.FindIndex(e => e.Id == entity.Id);
 
-                if (count == 0)
+                if (index < 0)
                 {
                     throw new InvalidOperationException("Entity not found.");
                 }
 
-                collection = collection.Where(e => e.Id != entity.Id).ToList();
+                collection.RemoveAt(index);
 
-                if (!collection.Any())
+                if (collection.Count == 0)
                 {
                     _collections.TryRemove(type, out _);
                 }
 
-                return count;
+                return 1;
             }
             finally
             {
@@ -313,21 +313,21 @@ namespace SandloDb.Core
                     throw new InvalidOperationException(nameof(collection));
                 }
 
-                var count = collection.Count(e => e.Id == entity.Id);
+                var index = collection.FindIndex(e => e.Id == entity.Id);
 
-                if (count == 0)
+                if (index < 0)
                 {
                     throw new InvalidOperationException("Entity not found.");
                 }
 
-                collection = collection.Where(e => e.Id != entity.Id).ToList();
+                collection.RemoveAt(index);
 
                 if (collection.Count == 0)
                 {
                     _collections.TryRemove(type, out _);
                 }
 
-                return count;
+                return 1;
             }
             finally
             {
@@ -370,21 +370,24 @@ namespace SandloDb.Core
                     throw new InvalidOperationException(nameof(collection));
                 }
 
-                var count = collection.Count(e => entities.Select(et => et.Id).Contains(e.Id));
-
-                if (count == 0)
+                foreach (var entity in entities)
                 {
-                    throw new InvalidOperationException("Entities not found.");
+                    var index = collection.FindIndex(e => e.Id == entity.Id);
+
+                    if (index < 0)
+                    {
+                        throw new InvalidOperationException("Entity not found.");
+                    }
+
+                    collection.RemoveAt(index);
                 }
-
-                collection = collection.Where(e => !entities.Select(et => et.Id).Contains(e.Id)).ToList();
-
+                
                 if (collection.Count == 0)
                 {
                     _collections.TryRemove(type, out _);
                 }
-
-                return count;
+                
+                return entities.Count;
             }
             finally
             {
@@ -427,21 +430,24 @@ namespace SandloDb.Core
                     throw new InvalidOperationException(nameof(collection));
                 }
 
-                var count = collection.Count(e => entities.Select(et => et.Id).Contains(e.Id));
-
-                if (count == 0)
+                foreach (var entity in entities)
                 {
-                    throw new InvalidOperationException("Entities not found.");
-                }
+                    var index = collection.FindIndex(e => e.Id == entity.Id);
 
-                collection = collection.Where(e => !entities.Select(et => et.Id).Contains(e.Id)).ToList();
+                    if (index < 0)
+                    {
+                        throw new InvalidOperationException("Entity not found.");
+                    }
+
+                    collection.RemoveAt(index);
+                }
 
                 if (collection.Count == 0)
                 {
                     _collections.TryRemove(type, out _);
                 }
 
-                return count;
+                return entities.Count;
             }
             finally
             {
