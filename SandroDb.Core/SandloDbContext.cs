@@ -1,20 +1,27 @@
-﻿using System.Collections.Concurrent;
-
-namespace SandloDb.Core
+﻿namespace SandloDb.Core
 {
     public sealed class SandloDbContext
     {
         private Dictionary<Type, List<object>>? _collections = new();
 
         private long CurrentTimestamp => new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
-        private readonly ReaderWriterLockSlim _lock = new();
+        private readonly object _lock = new();
 
         /// <summary>
         /// Current types stored in SandloDbContext
         /// </summary>
-        public IList<Type> CurrentTypes => _collections != null && _collections.Any()
-            ? _collections.Select(x => x.Key).ToList()
-            : new List<Type>();
+        public IList<Type> CurrentTypes
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _collections != null && _collections.Count != 0
+                        ? _collections.Select(x => x.Key).ToList()
+                        : new List<Type>();
+                }
+            }
+        }
 
         /// <summary>
         /// Add element to storage
@@ -24,9 +31,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public T Add<T>(T? entity) where T : class, IEntity
         {
-            _lock.EnterWriteLock();
-
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(entity);
 
@@ -50,10 +55,6 @@ namespace SandloDb.Core
 
                 return entity;
             }
-            finally
-            {
-                _lock.ExitWriteLock();
-            }
         }
 
         /// <summary>
@@ -64,8 +65,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public IList<T> AddMany<T>(List<T>? entities) where T : class, IEntity
         {
-            _lock.EnterWriteLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(entities);
 
@@ -92,10 +92,6 @@ namespace SandloDb.Core
 
                 return entities;
             }
-            finally
-            {
-                _lock.ExitWriteLock();
-            }
         }
 
         /// <summary>
@@ -108,8 +104,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public T Update<T>(T? entity) where T : class, IEntity
         {
-            _lock.EnterWriteLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(entity);
 
@@ -139,7 +134,7 @@ namespace SandloDb.Core
                     throw new InvalidOperationException(nameof(collection));
                 }
 
-                var foundedElementIndex =  collection.FindIndex(e => e.Id == entity.Id);
+                var foundedElementIndex = collection.FindIndex(e => e.Id == entity.Id);
 
                 if (foundedElementIndex < 0)
                 {
@@ -151,10 +146,6 @@ namespace SandloDb.Core
                 collection[foundedElementIndex] = entity;
 
                 return entity;
-            }
-            finally
-            {
-                _lock.ExitWriteLock();
             }
         }
 
@@ -168,8 +159,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public IList<T> UpdateMany<T>(IList<T>? entities) where T : class, IEntity
         {
-            _lock.EnterWriteLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(entities);
 
@@ -200,8 +190,8 @@ namespace SandloDb.Core
                     {
                         throw new ArgumentException("No id provided");
                     }
-                    
-                    var foundedElementIndex =  collection.FindIndex(e => e.Id == entity.Id);
+
+                    var foundedElementIndex = collection.FindIndex(e => e.Id == entity.Id);
 
                     if (foundedElementIndex < 0)
                     {
@@ -215,10 +205,6 @@ namespace SandloDb.Core
 
                 return entities;
             }
-            finally
-            {
-                _lock.ExitWriteLock();
-            }
         }
 
         /// <summary>
@@ -230,8 +216,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public int Remove<T>(T? entity) where T : class, IEntity
         {
-            _lock.EnterWriteLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(entity);
 
@@ -267,14 +252,10 @@ namespace SandloDb.Core
 
                 if (collection.Count == 0)
                 {
-                    _collections.TryRemove(type, out _);
+                    _collections.Remove(type);
                 }
 
                 return 1;
-            }
-            finally
-            {
-                _lock.ExitWriteLock();
             }
         }
 
@@ -288,8 +269,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public int Remove(IEntity? entity, Type? type)
         {
-            _lock.EnterWriteLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(entity);
                 ArgumentNullException.ThrowIfNull(type);
@@ -324,14 +304,10 @@ namespace SandloDb.Core
 
                 if (collection.Count == 0)
                 {
-                    _collections.TryRemove(type, out _);
+                    _collections.Remove(type);
                 }
 
                 return 1;
-            }
-            finally
-            {
-                _lock.ExitWriteLock();
             }
         }
 
@@ -344,8 +320,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public int RemoveMany<T>(IList<T>? entities) where T : class, IEntity
         {
-            _lock.EnterWriteLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(entities);
 
@@ -381,17 +356,13 @@ namespace SandloDb.Core
 
                     collection.RemoveAt(index);
                 }
-                
+
                 if (collection.Count == 0)
                 {
-                    _collections.TryRemove(type, out _);
+                    _collections.Remove(type);
                 }
-                
+
                 return entities.Count;
-            }
-            finally
-            {
-                _lock.ExitWriteLock();
             }
         }
 
@@ -405,8 +376,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public int RemoveMany(IList<IEntity>? entities, Type? type)
         {
-            _lock.EnterWriteLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(entities);
                 ArgumentNullException.ThrowIfNull(type);
@@ -444,14 +414,10 @@ namespace SandloDb.Core
 
                 if (collection.Count == 0)
                 {
-                    _collections.TryRemove(type, out _);
+                    _collections.Remove(type);
                 }
 
                 return entities.Count;
-            }
-            finally
-            {
-                _lock.ExitWriteLock();
             }
         }
 
@@ -461,8 +427,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public IList<T> GetAll<T>() where T : class, IEntity
         {
-            _lock.EnterReadLock();
-            try
+            lock (_lock)
             {
                 var type = typeof(T);
 
@@ -482,10 +447,6 @@ namespace SandloDb.Core
 
                 return collection.Count == 0 ? new List<T>() : collection.ToList();
             }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
         }
 
         /// <summary>
@@ -496,9 +457,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public IList<IEntity> GetAll(Type? type)
         {
-            _lock.EnterReadLock();
-
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(type);
 
@@ -518,10 +477,6 @@ namespace SandloDb.Core
 
                 return collection.Count == 0 ? new List<IEntity>() : collection.ToList();
             }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
         }
 
         /// <summary>
@@ -531,8 +486,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public IList<T> GetBy<T>(Func<T, bool>? predicate) where T : class, IEntity
         {
-            _lock.EnterReadLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(predicate);
 
@@ -554,10 +508,6 @@ namespace SandloDb.Core
 
                 return collection.Count == 0 ? new List<T>() : collection.Where(predicate).ToList();
             }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
         }
 
         /// <summary>
@@ -569,8 +519,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public IList<IEntity> GetBy(Func<IEntity, bool>? predicate, Type? type)
         {
-            _lock.EnterReadLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(predicate);
                 ArgumentNullException.ThrowIfNull(type);
@@ -591,10 +540,6 @@ namespace SandloDb.Core
 
                 return collection.Count == 0 ? new List<IEntity>() : collection.Where(predicate).ToList();
             }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
         }
 
         /// <summary>
@@ -605,8 +550,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public T? Get<T>(Func<T, bool>? predicate) where T : class, IEntity
         {
-            _lock.EnterReadLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(predicate);
 
@@ -627,10 +571,6 @@ namespace SandloDb.Core
                 var collection = collectionContent.OfType<T>().ToList();
 
                 return collection.Count == 0 ? null : collection.FirstOrDefault(predicate);
-            }
-            finally
-            {
-                _lock.ExitReadLock();
             }
         }
 
@@ -643,8 +583,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public IEntity? Get(Func<IEntity, bool>? predicate, Type? type)
         {
-            _lock.EnterReadLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(predicate);
                 ArgumentNullException.ThrowIfNull(type);
@@ -665,10 +604,6 @@ namespace SandloDb.Core
 
                 return collection.Count == 0 ? null : collection.FirstOrDefault(predicate);
             }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
         }
 
         /// <summary>
@@ -678,8 +613,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public T? GetById<T>(Guid id) where T : class, IEntity
         {
-            _lock.EnterReadLock();
-            try
+            lock (_lock)
             {
                 var type = typeof(T);
 
@@ -699,10 +633,6 @@ namespace SandloDb.Core
 
                 return collection.Count == 0 ? null : collection.FirstOrDefault(e => e.Id == id);
             }
-            finally
-            {
-                _lock.ExitReadLock();
-            }
         }
 
         /// <summary>
@@ -714,8 +644,7 @@ namespace SandloDb.Core
         /// <returns></returns>
         public IEntity? GetById(Guid id, Type? type)
         {
-            _lock.EnterReadLock();
-            try
+            lock (_lock)
             {
                 ArgumentNullException.ThrowIfNull(type);
 
@@ -734,10 +663,6 @@ namespace SandloDb.Core
                 var collection = collectionContent.OfType<IEntity>().ToList();
 
                 return collection.Count == 0 ? null : collection.FirstOrDefault(e => e.Id == id);
-            }
-            finally
-            {
-                _lock.ExitReadLock();
             }
         }
     }

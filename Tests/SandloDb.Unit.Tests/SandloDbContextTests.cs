@@ -357,7 +357,7 @@ namespace SandloDb.Unit.Tests
                 Name = "Updated nameTwo",
                 Description = "Updated descriptionTwo"
             };
-            
+
             var updateResult = service.UpdateMany(new List<SandloDbTestEntity>()
             {
                 entityUpdated, entityTwoUpdated
@@ -1289,358 +1289,145 @@ namespace SandloDb.Unit.Tests
             Assert.Throws<InvalidOperationException>(() => action());
         }
 
-        // [Theory]
-        // [Trait("Category", "Concurrency")]
-        // [InlineData(20, 20)]
-        // public void SandloDbContext_CompleteRun_MultiThread_Ok(int parallelTasks, int chunkSize)
-        // {
-        //     //arrange
-        //     var elementsToAdd = Enumerable.Range(0, chunkSize * parallelTasks).Select((e, j) =>
-        //         new SandloDbTestEntity()
-        //         {
-        //             Description = $"description-{j}",
-        //             Name = $"name-{j}",
-        //             Index = j
-        //         }).ToList();
-        //
-        //     var chunkedEntities = elementsToAdd
-        //         .Select((x, j) => new SandloDbTestEntity()
-        //         {
-        //             Index = j,
-        //             Description = x.Description,
-        //             Name = x.Name
-        //         })
-        //         .GroupBy(x => x.Index / 20)
-        //         .Select(x => x.Select(v => v).ToList())
-        //         .ToList();
-        //
-        //     var service = _host.Services.GetRequiredService<SandloDbContext>();
-        //
-        //     var tasks = new Task[parallelTasks];
-        //
-        //     for (var i = 0; i < parallelTasks; i++)
-        //     {
-        //         var index = i;
-        //         tasks[i] = Task.Factory.StartNew(() => { service.AddMany(chunkedEntities[index]); });
-        //     }
-        //
-        //     Task.WaitAll(tasks);
-        //
-        //     //act
-        //     var result = service.GetAll<SandloDbTestEntity>();
-        //
-        //     //assert
-        //     Assert.NotNull(result);
-        //     Assert.Equal(chunkSize * parallelTasks, result.Count);
-        //     var orderedResult = result.OrderBy(x => x.Index).ToList();
-        //     for (var i = 0; i < orderedResult.Count; i++)
-        //     {
-        //         Assert.NotEqual(Guid.Empty, orderedResult[i].Id);
-        //         Assert.NotEqual(0, orderedResult[i].Created);
-        //         Assert.NotEqual(0, orderedResult[i].Updated);
-        //         Assert.Equal($"name-{i}", orderedResult[i].Name);
-        //         Assert.Equal($"description-{i}", orderedResult[i].Description);
-        //     }
-        //
-        //     var toBeUpdatedOrderResult = orderedResult.Select(e => new SandloDbTestEntity()
-        //     {
-        //         Created = e.Created,
-        //         Description = $"{e.Description}-updated",
-        //         Id = e.Id,
-        //         Index = e.Index,
-        //         Name = $"{e.Name}-updated"
-        //     });
-        //     
-        //     var updatedChunkedEntities = toBeUpdatedOrderResult
-        //         .Select((x, j) => new SandloDbTestEntity()
-        //         {
-        //             Index = j,
-        //             Description = x.Description,
-        //             Name = x.Name,
-        //             Id = x.Id,
-        //             Created = x.Created,
-        //             Updated = x.Updated
-        //         })
-        //         .GroupBy(x => x.Index / 20)
-        //         .Select(x => x.Select(v => v).ToList())
-        //         .ToList();
-        //
-        //     tasks = new Task[parallelTasks];
-        //
-        //     for (var i = 0; i < parallelTasks; i++)
-        //     {
-        //         var index = i;
-        //         tasks[i] = Task.Factory.StartNew(() => { service.UpdateMany(updatedChunkedEntities[index]); });
-        //     }
-        //
-        //     Task.WaitAll(tasks);
-        //
-        //     var updatedResult = service.GetAll<SandloDbTestEntity>();
-        //
-        //     //assert
-        //     Assert.NotNull(updatedResult);
-        //     Assert.Equal(chunkSize * parallelTasks, result.Count);
-        //     var updatedOrderedResult = updatedResult.OrderBy(x => x.Index).ToList();
-        //     for (var i = 0; i < updatedOrderedResult.Count; i++)
-        //     {
-        //         Assert.NotEqual(Guid.Empty, updatedOrderedResult[i].Id);
-        //         Assert.NotEqual(0, updatedOrderedResult[i].Created);
-        //         Assert.NotEqual(0, updatedOrderedResult[i].Updated);
-        //         Assert.Equal($"name-{i}-updated", updatedOrderedResult[i].Name);
-        //         Assert.Equal($"description-{i}-updated", updatedOrderedResult[i].Description);
-        //     }
-        //     
-        //     var toBeDeletedOrderResult = orderedResult.Select(e => new SandloDbTestEntity()
-        //     {
-        //         Created = e.Created,
-        //         Description = $"{e.Description}-updated",
-        //         Id = e.Id,
-        //         Index = e.Index,
-        //         Name = $"{e.Name}-updated"
-        //     });
-        //     
-        //     var toBeDeletedChunkedEntities = toBeDeletedOrderResult
-        //         .Select((x, j) => new SandloDbTestEntity()
-        //         {
-        //             Index = x.Index,
-        //             Description = x.Description,
-        //             Name = x.Name,
-        //             Id = x.Id,
-        //             Created = x.Created,
-        //             Updated = x.Updated
-        //         })
-        //         .GroupBy(x => x.Index / 20)
-        //         .Select(x => x.Select(v => v).ToList())
-        //         .ToList();
-        //     
-        //     tasks = new Task[parallelTasks];
-        //     
-        //     for (var i = 0; i < parallelTasks; i++)
-        //     {
-        //         var index = i;
-        //         tasks[i] = Task.Factory.StartNew(() => { service.RemoveMany(toBeDeletedChunkedEntities[index]); });
-        //     }
-        //     
-        //     Task.WaitAll(tasks);
-        //     
-        //     result = service.GetAll<SandloDbTestEntity>();
-        //     
-        //     //assert
-        //     Assert.NotNull(result);
-        //     Assert.Empty(result);
-        // }
-
-        [Fact]
-        public void AddProduct_ConcurrentAccess_NoCollisions()
+        [Theory]
+        [Trait("Category", "Concurrency")]
+        [InlineData(20, 20)]
+        public void SandloDbContext_CompleteRun_MultiThread_Ok(int parallelTasks, int chunkSize)
         {
-            // Arrange
-            var dbContext = new ThreadSafeInMemoryDbContext();
-            int numThreads = 10;
-            int numIterations = 100;
-            var threads = new List<Thread>();
-
-            // Act
-            for (int i = 0; i < numThreads; i++)
-            {
-                var thread = new Thread(() =>
+            //arrange
+            var elementsToAdd = Enumerable.Range(0, chunkSize * parallelTasks).Select((e, j) =>
+                new SandloDbTestEntity()
                 {
-                    for (int j = 0; j < numIterations; j++)
-                    {
-                        var productId = Guid.NewGuid();
-                        var product = new Product { Id = productId, Name = $"Product {productId}", Price = 10.0m };
-                        dbContext.AddProduct(product);
-                    }
-                });
-                threads.Add(thread);
-                thread.Start();
-            }
-
-            // Assert
-            foreach (var thread in threads)
-            {
-                thread.Join();
-            }
-
-            // Ensure all products are added without collisions
-            var allProducts = dbContext.GetAllProducts();
-            Assert.Equal(numThreads * numIterations, allProducts.Count());
-        }
-
-        [Fact]
-        public void UpdateProduct_ConcurrentAccess_NoCollisions()
-        {
-            // Arrange
-            var dbContext = new ThreadSafeInMemoryDbContext();
-            int numThreads = 10;
-            int numIterations = 100;
-            var threads = new List<Thread>();
-
-            // Add products
-            for (int i = 0; i < numThreads * numIterations; i++)
-            {
-                var productId = Guid.NewGuid();
-                var product = new Product { Id = productId, Name = $"Product {productId}", Price = 10.0m };
-                dbContext.AddProduct(product);
-            }
-
-            // Act
-            for (int i = 0; i < numThreads; i++)
-            {
-                var thread = new Thread(() =>
+                    Description = $"description-{j}",
+                    Name = $"name-{j}",
+                    Index = j
+                }).ToList();
+        
+            var chunkedEntities = elementsToAdd
+                .Select((x, j) => new SandloDbTestEntity()
                 {
-                    for (int j = 0; j < numIterations; j++)
-                    {
-                        var productId = dbContext.GetAllProducts().First().Id;
-                        var product = dbContext.GetProduct(productId);
-                        product.Price += 1.0m; // Increment price
-                    }
-                });
-                threads.Add(thread);
-                thread.Start();
-            }
-
-            // Assert
-            foreach (var thread in threads)
+                    Index = j,
+                    Description = x.Description,
+                    Name = x.Name
+                })
+                .GroupBy(x => x.Index / 20)
+                .Select(x => x.Select(v => v).ToList())
+                .ToList();
+        
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+        
+            var tasks = new Task[parallelTasks];
+        
+            for (var i = 0; i < parallelTasks; i++)
             {
-                thread.Join();
+                var index = i;
+                tasks[i] = Task.Factory.StartNew(() => { service.AddMany(chunkedEntities[index]); });
             }
-
-            // Ensure all products are updated without collisions
-            var allProducts = dbContext.GetAllProducts();
-            foreach (var product in allProducts)
+        
+            Task.WaitAll(tasks);
+        
+            //act
+            var result = service.GetAll<SandloDbTestEntity>();
+        
+            //assert
+            Assert.NotNull(result);
+            Assert.Equal(chunkSize * parallelTasks, result.Count);
+            var orderedResult = result.OrderBy(x => x.Index).ToList();
+            for (var i = 0; i < orderedResult.Count; i++)
             {
-                Assert.Equal(11.0m, product.Price); // Price should be incremented by 1.0
+                Assert.NotEqual(Guid.Empty, orderedResult[i].Id);
+                Assert.NotEqual(0, orderedResult[i].Created);
+                Assert.NotEqual(0, orderedResult[i].Updated);
+                Assert.Equal($"name-{i}", orderedResult[i].Name);
+                Assert.Equal($"description-{i}", orderedResult[i].Description);
             }
-        }
-
-        [Fact]
-        public void GetAllProducts_ConcurrentAccess_NoDuplicates()
-        {
-            // Arrange
-            var dbContext = new ThreadSafeInMemoryDbContext();
-            int numThreads = 10;
-            int numIterations = 100;
-            var threads = new List<Thread>();
-
-            // Act
-            var productsSeen = new HashSet<Guid>();
-            for (int i = 0; i < numThreads; i++)
+        
+            var toBeUpdatedOrderResult = orderedResult.Select(e => new SandloDbTestEntity()
             {
-                var thread = new Thread(() =>
+                Created = e.Created,
+                Description = $"{e.Description}-updated",
+                Id = e.Id,
+                Index = e.Index,
+                Name = $"{e.Name}-updated"
+            });
+            
+            var updatedChunkedEntities = toBeUpdatedOrderResult
+                .Select((x, j) => new SandloDbTestEntity()
                 {
-                    for (int j = 0; j < numIterations; j++)
-                    {
-                        var productId = Guid.NewGuid();
-                        var product = new Product { Id = productId, Name = $"Product {productId}", Price = 10.0m };
-                        dbContext.AddProduct(product);
-                    }
-                });
-                threads.Add(thread);
-                thread.Start();
-            }
-
-            // Assert
-            foreach (var thread in threads)
+                    Index = j,
+                    Description = x.Description,
+                    Name = x.Name,
+                    Id = x.Id,
+                    Created = x.Created,
+                    Updated = x.Updated
+                })
+                .GroupBy(x => x.Index / 20)
+                .Select(x => x.Select(v => v).ToList())
+                .ToList();
+        
+            tasks = new Task[parallelTasks];
+        
+            for (var i = 0; i < parallelTasks; i++)
             {
-                thread.Join();
+                var index = i;
+                tasks[i] = Task.Factory.StartNew(() => { service.UpdateMany(updatedChunkedEntities[index]); });
             }
-
-            // Ensure no duplicates and all products have correct IDs
-            var allProducts = dbContext.GetAllProducts().OrderBy(p => p.Id).ToList();
-            Assert.Equal(numThreads * numIterations, allProducts.Count);
-            for (int i = 0; i < numThreads * numIterations; i++)
+        
+            Task.WaitAll(tasks);
+        
+            var updatedResult = service.GetAll<SandloDbTestEntity>();
+        
+            //assert
+            Assert.NotNull(updatedResult);
+            Assert.Equal(chunkSize * parallelTasks, result.Count);
+            var updatedOrderedResult = updatedResult.OrderBy(x => x.Index).ToList();
+            for (var i = 0; i < updatedOrderedResult.Count; i++)
             {
-                Assert.Contains(allProducts[i].Id, productsSeen);
-                productsSeen.Add(allProducts[i].Id);
+                Assert.NotEqual(Guid.Empty, updatedOrderedResult[i].Id);
+                Assert.NotEqual(0, updatedOrderedResult[i].Created);
+                Assert.NotEqual(0, updatedOrderedResult[i].Updated);
+                Assert.Equal($"name-{i}-updated", updatedOrderedResult[i].Name);
+                Assert.Equal($"description-{i}-updated", updatedOrderedResult[i].Description);
             }
-        }
-
-        [Fact]
-        public void DeleteProduct_ConcurrentAccess_NoCollisions()
-        {
-            // Arrange
-            var dbContext = new ThreadSafeInMemoryDbContext();
-            int numThreads = 10;
-            int numIterations = 100;
-            var threads = new List<Thread>();
-
-            // Add products
-            for (int i = 0; i < numThreads * numIterations; i++)
+            
+            var toBeDeletedOrderResult = orderedResult.Select(e => new SandloDbTestEntity()
             {
-                var productId = Guid.NewGuid();
-                var product = new Product { Id = productId, Name = $"Product {productId}", Price = 10.0m };
-                dbContext.AddProduct(product);
-            }
-
-            // Act
-            for (int i = 0; i < numThreads; i++)
-            {
-                var thread = new Thread(() =>
+                Created = e.Created,
+                Description = $"{e.Description}-updated",
+                Id = e.Id,
+                Index = e.Index,
+                Name = $"{e.Name}-updated"
+            });
+            
+            var toBeDeletedChunkedEntities = toBeDeletedOrderResult
+                .Select((x, j) => new SandloDbTestEntity()
                 {
-                    for (int j = 0; j < numIterations; j++)
-                    {
-                        var productId = dbContext.GetAllProducts().First().Id;
-                        dbContext.RemoveProduct(productId);
-                    }
-                });
-                threads.Add(thread);
-                thread.Start();
-            }
-
-            // Assert
-            foreach (var thread in threads)
+                    Index = x.Index,
+                    Description = x.Description,
+                    Name = x.Name,
+                    Id = x.Id,
+                    Created = x.Created,
+                    Updated = x.Updated
+                })
+                .GroupBy(x => x.Index / 20)
+                .Select(x => x.Select(v => v).ToList())
+                .ToList();
+            
+            tasks = new Task[parallelTasks];
+            
+            for (var i = 0; i < parallelTasks; i++)
             {
-                thread.Join();
+                var index = i;
+                tasks[i] = Task.Factory.StartNew(() => { service.RemoveMany(toBeDeletedChunkedEntities[index]); });
             }
-
-            // Ensure all products are removed without collisions
-            var allProducts = dbContext.GetAllProducts();
-            Assert.Empty(allProducts);
-        }
-
-        [Fact]
-        public void GetProduct_ConcurrentAccess_NoDuplicates()
-        {
-            // Arrange
-            var service = _host.Services.GetService<SandloDbContext>();
-            int numThreads = 10;
-            int numIterations = 100;
-            var threads = new List<Thread>();
-
-            // Add products
-            for (int i = 0; i < numThreads * numIterations; i++)
-            {
-                var entityId = Guid.NewGuid();
-                var product = new SandloDbTestEntity() { Id = entityId, Name = $"Name {entityId}", Description = $"Description {entityId}"};
-                dbContext.AddProduct(product);
-            }
-
-            // Act
-            var productsSeen = new HashSet<Guid>();
-            for (int i = 0; i < numThreads; i++)
-            {
-                var thread = new Thread(() =>
-                {
-                    for (int j = 0; j < numIterations; j++)
-                    {
-                        var productId = dbContext.GetAllProducts().First().Id;
-                        var product = dbContext.GetProduct(productId);
-                        lock (productsSeen)
-                        {
-                            Assert.DoesNotContain(productId, productsSeen);
-                            productsSeen.Add(productId);
-                        }
-                    }
-                });
-                threads.Add(thread);
-                thread.Start();
-            }
-
-            // Assert
-            foreach (var thread in threads)
-            {
-                thread.Join();
-            }
+            
+            Task.WaitAll(tasks);
+            
+            result = service.GetAll<SandloDbTestEntity>();
+            
+            //assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
         }
 
         private class SandloDbTestEntity : IEntity
@@ -1651,6 +1438,7 @@ namespace SandloDb.Unit.Tests
             public string? Name { get; set; }
             public string? Description { get; set; }
             public int Index { get; set; }
+            public decimal Price { get; set; }
         }
     }
 }
