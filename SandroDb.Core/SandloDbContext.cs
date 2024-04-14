@@ -4,10 +4,10 @@ namespace SandloDb.Core
 {
     public sealed class SandloDbContext
     {
-        private ConcurrentDictionary<Type, List<object>>? _collections = new();
+        private Dictionary<Type, List<object>>? _collections = new();
 
         private long CurrentTimestamp => new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
-        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+        private readonly ReaderWriterLockSlim _lock = new();
 
         /// <summary>
         /// Current types stored in SandloDbContext
@@ -34,7 +34,7 @@ namespace SandloDb.Core
 
                 if (_collections == null || !_collections.ContainsKey(type))
                 {
-                    _collections ??= new ConcurrentDictionary<Type, List<object>>();
+                    _collections ??= new Dictionary<Type, List<object>>();
 
                     _collections.TryAdd(type, new List<object>());
                 }
@@ -73,7 +73,7 @@ namespace SandloDb.Core
 
                 if (_collections == null || !_collections.ContainsKey(type))
                 {
-                    _collections ??= new ConcurrentDictionary<Type, List<object>>();
+                    _collections ??= new Dictionary<Type, List<object>>();
 
                     _collections.TryAdd(type, new List<object>());
                 }

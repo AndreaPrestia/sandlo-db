@@ -1430,6 +1430,219 @@ namespace SandloDb.Unit.Tests
         //     Assert.Empty(result);
         // }
 
+        [Fact]
+        public void AddProduct_ConcurrentAccess_NoCollisions()
+        {
+            // Arrange
+            var dbContext = new ThreadSafeInMemoryDbContext();
+            int numThreads = 10;
+            int numIterations = 100;
+            var threads = new List<Thread>();
+
+            // Act
+            for (int i = 0; i < numThreads; i++)
+            {
+                var thread = new Thread(() =>
+                {
+                    for (int j = 0; j < numIterations; j++)
+                    {
+                        var productId = Guid.NewGuid();
+                        var product = new Product { Id = productId, Name = $"Product {productId}", Price = 10.0m };
+                        dbContext.AddProduct(product);
+                    }
+                });
+                threads.Add(thread);
+                thread.Start();
+            }
+
+            // Assert
+            foreach (var thread in threads)
+            {
+                thread.Join();
+            }
+
+            // Ensure all products are added without collisions
+            var allProducts = dbContext.GetAllProducts();
+            Assert.Equal(numThreads * numIterations, allProducts.Count());
+        }
+
+        [Fact]
+        public void UpdateProduct_ConcurrentAccess_NoCollisions()
+        {
+            // Arrange
+            var dbContext = new ThreadSafeInMemoryDbContext();
+            int numThreads = 10;
+            int numIterations = 100;
+            var threads = new List<Thread>();
+
+            // Add products
+            for (int i = 0; i < numThreads * numIterations; i++)
+            {
+                var productId = Guid.NewGuid();
+                var product = new Product { Id = productId, Name = $"Product {productId}", Price = 10.0m };
+                dbContext.AddProduct(product);
+            }
+
+            // Act
+            for (int i = 0; i < numThreads; i++)
+            {
+                var thread = new Thread(() =>
+                {
+                    for (int j = 0; j < numIterations; j++)
+                    {
+                        var productId = dbContext.GetAllProducts().First().Id;
+                        var product = dbContext.GetProduct(productId);
+                        product.Price += 1.0m; // Increment price
+                    }
+                });
+                threads.Add(thread);
+                thread.Start();
+            }
+
+            // Assert
+            foreach (var thread in threads)
+            {
+                thread.Join();
+            }
+
+            // Ensure all products are updated without collisions
+            var allProducts = dbContext.GetAllProducts();
+            foreach (var product in allProducts)
+            {
+                Assert.Equal(11.0m, product.Price); // Price should be incremented by 1.0
+            }
+        }
+
+        [Fact]
+        public void GetAllProducts_ConcurrentAccess_NoDuplicates()
+        {
+            // Arrange
+            var dbContext = new ThreadSafeInMemoryDbContext();
+            int numThreads = 10;
+            int numIterations = 100;
+            var threads = new List<Thread>();
+
+            // Act
+            var productsSeen = new HashSet<Guid>();
+            for (int i = 0; i < numThreads; i++)
+            {
+                var thread = new Thread(() =>
+                {
+                    for (int j = 0; j < numIterations; j++)
+                    {
+                        var productId = Guid.NewGuid();
+                        var product = new Product { Id = productId, Name = $"Product {productId}", Price = 10.0m };
+                        dbContext.AddProduct(product);
+                    }
+                });
+                threads.Add(thread);
+                thread.Start();
+            }
+
+            // Assert
+            foreach (var thread in threads)
+            {
+                thread.Join();
+            }
+
+            // Ensure no duplicates and all products have correct IDs
+            var allProducts = dbContext.GetAllProducts().OrderBy(p => p.Id).ToList();
+            Assert.Equal(numThreads * numIterations, allProducts.Count);
+            for (int i = 0; i < numThreads * numIterations; i++)
+            {
+                Assert.Contains(allProducts[i].Id, productsSeen);
+                productsSeen.Add(allProducts[i].Id);
+            }
+        }
+
+        [Fact]
+        public void DeleteProduct_ConcurrentAccess_NoCollisions()
+        {
+            // Arrange
+            var dbContext = new ThreadSafeInMemoryDbContext();
+            int numThreads = 10;
+            int numIterations = 100;
+            var threads = new List<Thread>();
+
+            // Add products
+            for (int i = 0; i < numThreads * numIterations; i++)
+            {
+                var productId = Guid.NewGuid();
+                var product = new Product { Id = productId, Name = $"Product {productId}", Price = 10.0m };
+                dbContext.AddProduct(product);
+            }
+
+            // Act
+            for (int i = 0; i < numThreads; i++)
+            {
+                var thread = new Thread(() =>
+                {
+                    for (int j = 0; j < numIterations; j++)
+                    {
+                        var productId = dbContext.GetAllProducts().First().Id;
+                        dbContext.RemoveProduct(productId);
+                    }
+                });
+                threads.Add(thread);
+                thread.Start();
+            }
+
+            // Assert
+            foreach (var thread in threads)
+            {
+                thread.Join();
+            }
+
+            // Ensure all products are removed without collisions
+            var allProducts = dbContext.GetAllProducts();
+            Assert.Empty(allProducts);
+        }
+
+        [Fact]
+        public void GetProduct_ConcurrentAccess_NoDuplicates()
+        {
+            // Arrange
+            var service = _host.Services.GetService<SandloDbContext>();
+            int numThreads = 10;
+            int numIterations = 100;
+            var threads = new List<Thread>();
+
+            // Add products
+            for (int i = 0; i < numThreads * numIterations; i++)
+            {
+                var entityId = Guid.NewGuid();
+                var product = new SandloDbTestEntity() { Id = entityId, Name = $"Name {entityId}", Description = $"Description {entityId}"};
+                dbContext.AddProduct(product);
+            }
+
+            // Act
+            var productsSeen = new HashSet<Guid>();
+            for (int i = 0; i < numThreads; i++)
+            {
+                var thread = new Thread(() =>
+                {
+                    for (int j = 0; j < numIterations; j++)
+                    {
+                        var productId = dbContext.GetAllProducts().First().Id;
+                        var product = dbContext.GetProduct(productId);
+                        lock (productsSeen)
+                        {
+                            Assert.DoesNotContain(productId, productsSeen);
+                            productsSeen.Add(productId);
+                        }
+                    }
+                });
+                threads.Add(thread);
+                thread.Start();
+            }
+
+            // Assert
+            foreach (var thread in threads)
+            {
+                thread.Join();
+            }
+        }
+
         private class SandloDbTestEntity : IEntity
         {
             public Guid Id { get; set; }
