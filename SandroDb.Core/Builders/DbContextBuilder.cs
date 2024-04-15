@@ -1,6 +1,4 @@
-﻿using SandloDb.Core.Configurations;
-
-namespace SandloDb.Core.Builders;
+﻿namespace SandloDb.Core.Builders;
 
 /// <summary>
 /// Builder to initialize correctly the DbContext with options
@@ -39,17 +37,6 @@ public class DbContextBuilder
         }
     }
     
-    /// <summary>
-    /// Adds the memoryCleanUpPolicy to use to the dbContext
-    /// </summary>
-    /// <param name="memoryCleanUpPolicy"></param>
-    /// <returns></returns>
-    public DbContextBuilder WithCleanupPolicy(MemoryCleanUpPolicy memoryCleanUpPolicy = MemoryCleanUpPolicy.DeleteAll)
-    {
-        _dbContext.MemoryCleanUpPolicy = memoryCleanUpPolicy;
-        return this;
-    }
-
     /// <summary>
     /// Adds the MaxMemoryAllocationBytes to the dbContext
     /// </summary>

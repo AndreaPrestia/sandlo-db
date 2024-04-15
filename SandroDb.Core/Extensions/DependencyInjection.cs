@@ -14,7 +14,6 @@ public static class DependencyInjection
         {
             services.AddSingleton(dbContext);
             services.AddHostedService<MaintenanceService>();
-            services.AddHostedService<MemoryManagerService>();
         });
     }
 }

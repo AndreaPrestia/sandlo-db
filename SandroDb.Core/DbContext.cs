@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
 using SandloDb.Core.Builders;
-using SandloDb.Core.Configurations;
 using SandloDb.Core.Entities;
 
 namespace SandloDb.Core;
@@ -16,11 +15,6 @@ public sealed class DbContext
     /// The entity ttl in minutes
     /// </summary>
     public int? EntityTtlMinutes { get; set; }
-
-    /// <summary>
-    /// The memory cleanup policy to use
-    /// </summary>
-    public MemoryCleanUpPolicy? MemoryCleanUpPolicy { get; set; }
 
     /// <summary>
     /// The max memory allocation in bytes for the storage
@@ -91,9 +85,17 @@ public sealed class DbContext
             entity.Id = Guid.NewGuid();
             entity.Created = CurrentTimestamp;
             entity.Updated = CurrentTimestamp;
+
+            var estimatedSize = EstimateSize(entity);
+
+            if ((CurrentSizeInBytes + estimatedSize) >= MaxMemoryAllocationInBytes)
+            {
+                PerformMaintenance();
+            }
+
             collection.Add(new DbSet<IEntity>()
             {
-                CurrentSizeInBytes = EstimateSize(entity),
+                CurrentSizeInBytes = estimatedSize,
                 Content = entity,
                 LastUpdateTime = entity.Created
             });
@@ -132,9 +134,17 @@ public sealed class DbContext
                 entity.Id = Guid.NewGuid();
                 entity.Created = CurrentTimestamp;
                 entity.Updated = CurrentTimestamp;
+
+                var estimatedSize = EstimateSize(entity);
+
+                if ((CurrentSizeInBytes + estimatedSize) >= MaxMemoryAllocationInBytes)
+                {
+                    PerformMaintenance();
+                }
+
                 collection.Add(new DbSet<IEntity>()
                 {
-                    CurrentSizeInBytes = EstimateSize(entity),
+                    CurrentSizeInBytes = estimatedSize,
                     Content = entity,
                     LastUpdateTime = entity.Created
                 });
@@ -707,7 +717,7 @@ public sealed class DbContext
             return result;
         }
     }
-    
+
     /// <summary>
     /// It estimates bytes size
     /// </summary>
@@ -717,5 +727,58 @@ public sealed class DbContext
     {
         var jsonString = JsonSerializer.Serialize(obj);
         return Encoding.UTF8.GetBytes(jsonString).Length;
+    }
+
+    private void PerformMaintenance()
+    {
+        lock (_lock)
+        {
+            if (_collections == null)
+            {
+                return;
+            }
+
+            foreach (var collection in _collections)
+            {
+                var entitiesToDelete = collection.Value.Where(x =>
+                    x.LastUpdateTime <= new DateTimeOffset(DateTime.UtcNow).AddMinutes(-EntityTtlMinutes ?? 5)
+                        .ToUnixTimeMilliseconds()).AsQueryable().ToList();
+
+                var startCount = collection.Value.Count;
+
+                foreach (var entity in entitiesToDelete)
+                {
+                    var entitySize = EstimateSize(entity);
+
+                    if ((CurrentSizeInBytes - entitySize) < MaxMemoryAllocationInBytes)
+                    {
+                        var index = collection.Value.FindIndex(e => e.Content?.Id == entity.Content?.Id);
+
+                        if (index < 0)
+                        {
+                            continue;
+                        }
+
+                        collection.Value.RemoveAt(index);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                var currentCollectionCount = collection.Value.Count;
+
+                if (startCount != currentCollectionCount)
+                {
+                    _collections[collection.Key] = collection.Value;
+                }
+
+                if (currentCollectionCount == 0)
+                {
+                    _collections.Remove(collection.Key);
+                }
+            }
+        }
     }
 }
