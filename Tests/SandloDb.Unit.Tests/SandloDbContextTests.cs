@@ -1291,8 +1291,53 @@ namespace SandloDb.Unit.Tests
 
         [Theory]
         [Trait("Category", "Concurrency")]
+        [InlineData(2, 20)]
+        public void SandloDbContext_CompleteRun_MultiThread_Ok(int numThreads, int numIterations)
+        {
+            // Arrange
+            var service = _host.Services.GetRequiredService<SandloDbContext>();
+            var threads = new List<Thread>();
+            var generatedIds = new HashSet<Guid>();
+
+            // Act
+            for (int i = 0; i < numThreads; i++)
+            {
+                var thread = new Thread(() =>
+                {
+                    var entitiesToAdd = GenerateUniqueEntities(numIterations).ToList();
+                    var addedEntities = service.AddMany(entitiesToAdd);
+                    
+                    Assert.NotNull(addedEntities);
+                    Assert.True(entitiesToAdd.Select(x => x.Name).SequenceEqual(addedEntities.Select(x => x.Name)));
+                    foreach (var entity in addedEntities)
+                    {
+                        entity.Price += 5.0m;
+                    }
+                    var updatedEntities = service.UpdateMany(addedEntities);
+                    Assert.NotNull(updatedEntities);
+                    Assert.True(addedEntities.Select(x => x.Price).SequenceEqual(updatedEntities.Select(x => x.Price)));
+                    var deleteResult = service.RemoveMany(updatedEntities);
+                    Assert.Equal(updatedEntities.Count, deleteResult);
+                });
+                threads.Add(thread);
+                thread.Start();
+            }
+
+            // Wait for all threads to complete
+            foreach (var thread in threads)
+            {
+                thread.Join();
+            }
+
+            // Assert
+            var remainingEntities = service.GetAll<SandloDbTestEntity>();
+            Assert.Empty(remainingEntities);
+        }
+        
+           [Theory]
+        [Trait("Category", "Concurrency")]
         [InlineData(20, 20)]
-        public void SandloDbContext_CompleteRun_MultiThread_Ok(int parallelTasks, int chunkSize)
+        public void SandloDbContext_CompleteRun_MultiThread_Ok_Old(int parallelTasks, int chunkSize)
         {
             //arrange
             var elementsToAdd = Enumerable.Range(0, chunkSize * parallelTasks).Select((e, j) =>
@@ -1428,6 +1473,14 @@ namespace SandloDb.Unit.Tests
             //assert
             Assert.NotNull(result);
             Assert.Empty(result);
+        }
+        
+        private IEnumerable<SandloDbTestEntity> GenerateUniqueEntities(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                yield return new SandloDbTestEntity { Name = $"Entity {i}", Price = 10.0m };
+            }
         }
 
         private class SandloDbTestEntity : IEntity
