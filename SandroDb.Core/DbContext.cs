@@ -24,12 +24,12 @@ public sealed class DbContext
     /// <summary>
     /// The entity ttl in minutes
     /// </summary>
-    public int? EntityTtlMinutes { get; set; }
+    public int? EntityTtlMinutes { get; internal set; }
 
     /// <summary>
     /// The max memory allocation in bytes for the storage
     /// </summary>
-    public double? MaxMemoryAllocationInBytes { get; set; }
+    public double? MaxMemoryAllocationInBytes { get; internal set; }
 
     /// <summary>
     /// Current types stored in DbContext
