@@ -729,6 +729,9 @@ public sealed class DbContext
         return Encoding.UTF8.GetBytes(jsonString).Length;
     }
 
+    /// <summary>
+    /// This method performs memory maintenance. Removes older and bigger entities.
+    /// </summary>
     private void PerformMaintenance()
     {
         lock (_lock)
