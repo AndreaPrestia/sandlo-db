@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SandloDb.Core.Configurations;
 
 namespace SandloDb.Core.Services.Hosted;
 
@@ -9,9 +8,9 @@ namespace SandloDb.Core.Services.Hosted;
 internal class MaintenanceService : BackgroundService
 {
     private readonly ILogger<MaintenanceService> _logger;
-    private readonly SandloDbContext _dbContext;
+    private readonly DbContext _dbContext;
 
-    public MaintenanceService(ILogger<MaintenanceService> logger, SandloDbContext dbContext)
+    public MaintenanceService(ILogger<MaintenanceService> logger, DbContext dbContext)
     {
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(dbContext);
@@ -22,7 +21,7 @@ internal class MaintenanceService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var entityTtlMinutes = SandloDbConfiguration.SandloDbOptions != null ? SandloDbConfiguration.SandloDbOptions.EntityTtlMinutes : 5;
+        var entityTtlMinutes = _dbContext.EntityTtlMinutes ?? 5;
         
         var timer = new PeriodicTimer(TimeSpan.FromMinutes(entityTtlMinutes * 1.5));
         while (await timer.WaitForNextTickAsync(stoppingToken))
@@ -35,7 +34,7 @@ internal class MaintenanceService : BackgroundService
 
                 if (!availableTypes.Any())
                 {
-                    _logger.LogInformation("No types stored in SandloDbContext. No maintenance will be provided.");
+                    _logger.LogInformation("No types stored in DbContext. No maintenance will be provided.");
                 }
                 else
                 {

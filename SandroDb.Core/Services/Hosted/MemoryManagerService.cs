@@ -1,15 +1,14 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SandloDb.Core.Configurations;
 
 namespace SandloDb.Core.Services.Hosted;
 
 internal sealed class MemoryManagerService : BackgroundService
 {
     private readonly ILogger<MemoryManagerService> _logger;
-    private readonly SandloDbContext _dbContext;
+    private readonly DbContext _dbContext;
 
-    public MemoryManagerService(ILogger<MemoryManagerService> logger, SandloDbContext dbContext)
+    public MemoryManagerService(ILogger<MemoryManagerService> logger, DbContext dbContext)
     {
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(dbContext);
@@ -20,7 +19,7 @@ internal sealed class MemoryManagerService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var entityTtlMinutes = SandloDbConfiguration.SandloDbOptions != null ? SandloDbConfiguration.SandloDbOptions.EntityTtlMinutes : 5;
+        var entityTtlMinutes = _dbContext.MaxMemoryAllocationInBytes ?? 1e+7;
 
         var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
         while (await timer.WaitForNextTickAsync(stoppingToken))
@@ -33,7 +32,7 @@ internal sealed class MemoryManagerService : BackgroundService
 
                 if (!availableTypes.Any())
                 {
-                    _logger.LogInformation("No types stored in SandloDbContext. No maintenance will be provided.");
+                    _logger.LogInformation("No types stored in DbContext. No maintenance will be provided.");
                 }
                 else
                 {

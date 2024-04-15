@@ -1,8 +1,10 @@
-﻿using SandloDb.Core.Entities;
+﻿using SandloDb.Core.Builders;
+using SandloDb.Core.Configurations;
+using SandloDb.Core.Entities;
 
 namespace SandloDb.Core;
 
-public sealed class SandloDbContext
+public sealed class DbContext
 {
     private Dictionary<Type, List<object>>? _collections = new();
 
@@ -10,7 +12,22 @@ public sealed class SandloDbContext
     private readonly object _lock = new();
 
     /// <summary>
-    /// Current types stored in SandloDbContext
+    /// The entity ttl in minutes
+    /// </summary>
+    public int? EntityTtlMinutes { get; set; }
+    
+    /// <summary>
+    /// The memory cleanup policy to use
+    /// </summary>
+    public MemoryCleanUpPolicy? MemoryCleanUpPolicy { get; set; }
+    
+    /// <summary>
+    /// The max memory allocation in bytes for the storage
+    /// </summary>
+    public double? MaxMemoryAllocationInBytes { get; set; }
+    
+    /// <summary>
+    /// Current types stored in DbContext
     /// </summary>
     public IList<Type> CurrentTypes
     {
@@ -25,6 +42,12 @@ public sealed class SandloDbContext
         }
     }
 
+    // Static method to create an instance of the builder
+    public static DbContextBuilder CreateBuilder()
+    {
+        return DbContextBuilder.Initialize();
+    }
+    
     /// <summary>
     /// Add element to storage
     /// </summary>
