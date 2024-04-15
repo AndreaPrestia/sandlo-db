@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SandloDb.Core;
@@ -1473,6 +1474,30 @@ namespace SandloDb.Unit.Tests
             //assert
             Assert.NotNull(result);
             Assert.Empty(result);
+        }
+        
+        [Fact]
+        public void DbContext_Get_Size_Ok()
+        {
+            //arrange
+            var entity = new TestEntity()
+            {
+                Name = "name",
+                Description = "description"
+            };
+
+            var service = _host.Services.GetRequiredService<DbContext>();
+
+            var addResult = service.Add(entity);
+
+            var expectedSize = JsonSerializer.Serialize(addResult).Length;
+            
+            //act
+            var size = service.CurrentSizeInBytes;
+
+            //assert
+            Assert.NotNull(addResult);
+            Assert.Equal(expectedSize, size);
         }
         
         private IEnumerable<TestEntity> GenerateUniqueEntities(int count)
