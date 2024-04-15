@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SandloDb.Core;
+using SandloDb.Core.Builders;
 using SandloDb.Core.Entities;
 
 namespace SandloDb.Unit.Tests
@@ -13,7 +14,15 @@ namespace SandloDb.Unit.Tests
         public DbContextTests()
         {
             _host = Host.CreateDefaultBuilder()
-                .ConfigureServices((_, services) => { services.AddSingleton<DbContext>(); })
+                .ConfigureServices((_, services) =>
+                {
+                    services.AddSingleton(_ =>
+                    {
+                        var dbContext = DbContextBuilder.Initialize().Build();
+
+                        return dbContext;
+                    });
+                })
                 .Build();
         }
 

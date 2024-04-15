@@ -11,6 +11,16 @@ public sealed class DbContext
     private long CurrentTimestamp => new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
     private readonly object _lock = new();
 
+    private DbContext()
+    {
+        
+    }
+
+    internal static DbContext Create()
+    {
+        return new DbContext();
+    }
+    
     /// <summary>
     /// The entity ttl in minutes
     /// </summary>

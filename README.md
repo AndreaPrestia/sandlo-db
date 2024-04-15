@@ -6,20 +6,19 @@ An in-memory database totally written in .NET
 You should reference the project and just the following lines in your startup part (Program.cs or whatever you prefer):
 
 ```
-var dbContext = DbContextBuilder
+var dbContextBuilder = DbContextBuilder
                 .Initialize()
                 .WithEntityTtlMinutes(5)
-                .WithMaxMemoryAllocationInBytes(2000)
-                .Build();
+                .WithMaxMemoryAllocationInBytes(2000);
 
-builder.AddSandloDbContext(dbContext);
+builder.AddSandloDbContext(dbContextBuilder);
 ```
 
-You can create the **DbContext**instance with the **DbContextBuilder**.
+You can create the **DbContextBioòder**instance with the **DbContextBuilder** class and the **AddSandloDbContext** extension will register it.
 
 It helps you to apply the **EntityTtlMinutes**, **MaxMemoryAllocationInBytes** with a **FluentBuilder** pattern.
 
-As you can see the **AddSandloDbContext** takes as input parameter an object of type **DbContext**. It is mandatory.
+As you can see the **AddSandloDbContext** takes as input parameter an object of type **DbContextBuilder**. It is mandatory.
 
 **DbContextBuilder**
 

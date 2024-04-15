@@ -9,7 +9,7 @@ public class DbContextBuilder
 
     private DbContextBuilder()
     {
-        _dbContext = new DbContext();
+        _dbContext = DbContext.Create();
     }
 
     // Static initializer to create the builder instance
@@ -56,7 +56,7 @@ public class DbContextBuilder
         }
     }
     
-    public DbContext Build()
+    internal DbContext Build()
     {
         _dbContext.EntityTtlMinutes ??= 5;
         
