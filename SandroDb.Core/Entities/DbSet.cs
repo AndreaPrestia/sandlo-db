@@ -1,5 +1,8 @@
-﻿namespace SandloDb.Core.Entities;
+﻿using System.Diagnostics.CodeAnalysis;
 
+namespace SandloDb.Core.Entities;
+
+[ExcludeFromCodeCoverage]
 public sealed class DbSet<T> where T : IEntity
 {
     public T? Content { get; set; }
