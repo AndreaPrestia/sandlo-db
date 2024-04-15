@@ -1,4 +1,8 @@
-﻿using SandloDb.Core.Builders;
+﻿using System.Runtime.InteropServices;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
+using System.Text.Json;
+using SandloDb.Core.Builders;
 using SandloDb.Core.Configurations;
 using SandloDb.Core.Entities;
 
@@ -6,8 +10,7 @@ namespace SandloDb.Core;
 
 public sealed class DbContext
 {
-    private Dictionary<Type, List<object>>? _collections = new();
-
+    private Dictionary<Type, List<DbSet<IEntity>>>? _collections = new();
     private long CurrentTimestamp => new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
     private readonly object _lock = new();
 
@@ -15,17 +18,17 @@ public sealed class DbContext
     /// The entity ttl in minutes
     /// </summary>
     public int? EntityTtlMinutes { get; set; }
-    
+
     /// <summary>
     /// The memory cleanup policy to use
     /// </summary>
     public MemoryCleanUpPolicy? MemoryCleanUpPolicy { get; set; }
-    
+
     /// <summary>
     /// The max memory allocation in bytes for the storage
     /// </summary>
     public double? MaxMemoryAllocationInBytes { get; set; }
-    
+
     /// <summary>
     /// Current types stored in DbContext
     /// </summary>
@@ -42,12 +45,28 @@ public sealed class DbContext
         }
     }
 
+    /// <summary>
+    /// Current size in bytes of the in memory database
+    /// </summary>
+    public int CurrentSizeInBytes
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _collections != null && _collections.Count != 0
+                    ? _collections.Sum(x => x.Value.Sum(e => e.CurrentSizeInBytes))
+                    : 0;
+            }
+        }
+    }
+
     // Static method to create an instance of the builder
     public static DbContextBuilder CreateBuilder()
     {
         return DbContextBuilder.Initialize();
     }
-    
+
     /// <summary>
     /// Add element to storage
     /// </summary>
@@ -64,9 +83,9 @@ public sealed class DbContext
 
             if (_collections == null || !_collections.ContainsKey(type))
             {
-                _collections ??= new Dictionary<Type, List<object>>();
+                _collections ??= new Dictionary<Type, List<DbSet<IEntity>>>();
 
-                _collections.TryAdd(type, new List<object>());
+                _collections.TryAdd(type, new List<DbSet<IEntity>>());
             }
 
             var collection = _collections[type];
@@ -74,7 +93,12 @@ public sealed class DbContext
             entity.Id = Guid.NewGuid();
             entity.Created = CurrentTimestamp;
             entity.Updated = CurrentTimestamp;
-            collection.Add(entity);
+            collection.Add(new DbSet<IEntity>()
+            {
+                CurrentSizeInBytes = EstimateSize(entity),
+                Content = entity,
+                LastUpdateTime = entity.Created
+            });
 
             _collections[type] = collection;
 
@@ -98,9 +122,9 @@ public sealed class DbContext
 
             if (_collections == null || !_collections.ContainsKey(type))
             {
-                _collections ??= new Dictionary<Type, List<object>>();
+                _collections ??= new Dictionary<Type, List<DbSet<IEntity>>>();
 
-                _collections.TryAdd(type, new List<object>());
+                _collections.TryAdd(type, new List<DbSet<IEntity>>());
             }
 
             var collection = _collections[type];
@@ -110,7 +134,12 @@ public sealed class DbContext
                 entity.Id = Guid.NewGuid();
                 entity.Created = CurrentTimestamp;
                 entity.Updated = CurrentTimestamp;
-                collection.Add(entity);
+                collection.Add(new DbSet<IEntity>()
+                {
+                    CurrentSizeInBytes = EstimateSize(entity),
+                    Content = entity,
+                    LastUpdateTime = entity.Created
+                });
             }
 
             _collections[type] = collection;
@@ -152,14 +181,7 @@ public sealed class DbContext
                 throw new InvalidOperationException($"Collection {type.Name} not found.");
             }
 
-            var collection = collectionContent.OfType<T>().ToList();
-
-            if (collection == null)
-            {
-                throw new InvalidOperationException(nameof(collection));
-            }
-
-            var foundedElementIndex = collection.FindIndex(e => e.Id == entity.Id);
+            var foundedElementIndex = collectionContent.FindIndex(e => e.Content?.Id == entity.Id);
 
             if (foundedElementIndex < 0)
             {
@@ -168,9 +190,15 @@ public sealed class DbContext
 
             entity.Updated = CurrentTimestamp;
 
-            collection[foundedElementIndex] = entity;
+            var elementFound = collectionContent[foundedElementIndex];
 
-            _collections[type] = collection.OfType<object>().ToList();
+            elementFound.Content = entity;
+            elementFound.LastUpdateTime = entity.Updated;
+            elementFound.CurrentSizeInBytes = EstimateSize(entity);
+
+            collectionContent[foundedElementIndex] = elementFound;
+
+            _collections[type] = collectionContent;
 
             return entity;
         }
@@ -204,13 +232,6 @@ public sealed class DbContext
                 throw new InvalidOperationException($"Collection {type.Name} not found.");
             }
 
-            var collection = collectionContent.OfType<T>().ToList();
-
-            if (collection == null)
-            {
-                throw new InvalidOperationException(nameof(collection));
-            }
-
             foreach (var entity in entities)
             {
                 if (entity.Id == Guid.Empty)
@@ -218,7 +239,7 @@ public sealed class DbContext
                     throw new ArgumentException("No id provided");
                 }
 
-                var foundedElementIndex = collection.FindIndex(e => e.Id == entity.Id);
+                var foundedElementIndex = collectionContent.FindIndex(e => e.Content?.Id == entity.Id);
 
                 if (foundedElementIndex < 0)
                 {
@@ -227,10 +248,16 @@ public sealed class DbContext
 
                 entity.Updated = CurrentTimestamp;
 
-                collection[foundedElementIndex] = entity;
+                var elementFound = collectionContent[foundedElementIndex];
+
+                elementFound.Content = entity;
+                elementFound.LastUpdateTime = entity.Updated;
+                elementFound.CurrentSizeInBytes = EstimateSize(entity);
+
+                collectionContent[foundedElementIndex] = elementFound;
             }
-                
-            _collections[type] = collection.OfType<object>().ToList();
+
+            _collections[type] = collectionContent;
 
             return entities;
         }
@@ -263,25 +290,18 @@ public sealed class DbContext
                 throw new InvalidOperationException($"Collection {type.Name} not found.");
             }
 
-            var collection = collectionContent.OfType<T>().ToList();
-
-            if (collection == null)
-            {
-                throw new InvalidOperationException(nameof(collection));
-            }
-
-            var index = collection.FindIndex(e => e.Id == entity.Id);
+            var index = collectionContent.FindIndex(e => e.Content?.Id == entity.Id);
 
             if (index < 0)
             {
                 throw new InvalidOperationException("Entity not found.");
             }
 
-            collection.RemoveAt(index);
+            collectionContent.RemoveAt(index);
 
-            _collections[type] = collection.OfType<object>().ToList();
+            _collections[type] = collectionContent;
 
-            if (collection.Count == 0)
+            if (collectionContent.Count == 0)
             {
                 _collections.Remove(type);
             }
@@ -317,25 +337,18 @@ public sealed class DbContext
                 throw new InvalidOperationException($"Collection {type.Name} not found.");
             }
 
-            var collection = collectionContent.OfType<IEntity>().ToList();
-
-            if (collection == null)
-            {
-                throw new InvalidOperationException(nameof(collection));
-            }
-
-            var index = collection.FindIndex(e => e.Id == entity.Id);
+            var index = collectionContent.FindIndex(e => e.Content?.Id == entity.Id);
 
             if (index < 0)
             {
                 throw new InvalidOperationException("Entity not found.");
             }
 
-            collection.RemoveAt(index);
+            collectionContent.RemoveAt(index);
 
-            _collections[type] = collection.OfType<object>().ToList();
+            _collections[type] = collectionContent;
 
-            if (collection.Count == 0)
+            if (collectionContent.Count == 0)
             {
                 _collections.Remove(type);
             }
@@ -371,28 +384,21 @@ public sealed class DbContext
                 throw new InvalidOperationException($"Collection {type.Name} not found.");
             }
 
-            var collection = collectionContent.OfType<T>().ToList();
-
-            if (collection == null)
-            {
-                throw new InvalidOperationException(nameof(collection));
-            }
-
             foreach (var entity in entities)
             {
-                var index = collection.FindIndex(e => e.Id == entity.Id);
+                var index = collectionContent.FindIndex(e => e.Content?.Id == entity.Id);
 
                 if (index < 0)
                 {
                     throw new InvalidOperationException("Entity not found.");
                 }
 
-                collection.RemoveAt(index);
+                collectionContent.RemoveAt(index);
             }
 
-            _collections[type] = collection.OfType<object>().ToList();
+            _collections[type] = collectionContent;
 
-            if (collection.Count == 0)
+            if (collectionContent.Count == 0)
             {
                 _collections.Remove(type);
             }
@@ -428,28 +434,21 @@ public sealed class DbContext
                 throw new InvalidOperationException($"Collection {type.Name} not found.");
             }
 
-            var collection = collectionContent.OfType<IEntity>().ToList();
-
-            if (collection == null)
-            {
-                throw new InvalidOperationException(nameof(collection));
-            }
-
             foreach (var entity in entities)
             {
-                var index = collection.FindIndex(e => e.Id == entity.Id);
+                var index = collectionContent.FindIndex(e => e.Content?.Id == entity.Id);
 
                 if (index < 0)
                 {
                     throw new InvalidOperationException("Entity not found.");
                 }
 
-                collection.RemoveAt(index);
+                collectionContent.RemoveAt(index);
             }
 
-            _collections[type] = collection.OfType<object>().ToList();
+            _collections[type] = collectionContent;
 
-            if (collection.Count == 0)
+            if (collectionContent.Count == 0)
             {
                 _collections.Remove(type);
             }
@@ -480,10 +479,11 @@ public sealed class DbContext
                 return new List<T>();
             }
 
-            var collection = collectionContent.OfType<T>().ToList();
-
-            var result = collection.Count == 0 ? new List<T>() : collection.ToList();
-            return result;            }
+            var result = collectionContent.Count == 0
+                ? new List<T>()
+                : collectionContent.Select(x => x.Content as T).ToList()!;
+            return result;
+        }
     }
 
     /// <summary>
@@ -510,9 +510,9 @@ public sealed class DbContext
                 return new List<IEntity>();
             }
 
-            var collection = collectionContent.OfType<IEntity>().ToList();
-
-            var result = collection.Count == 0 ? new List<IEntity>() : collection.ToList();
+            var result = collectionContent.Count == 0
+                ? new List<IEntity>()
+                : collectionContent.Select(x => x.Content).ToList()!;
             return result;
         }
     }
@@ -542,10 +542,10 @@ public sealed class DbContext
                 return new List<T>();
             }
 
-            var collection = collectionContent.OfType<T>().ToList();
-
-            var result = collection.Count == 0 ? new List<T>() : collection.Where(predicate).AsQueryable().ToList();
-            return result; 
+            var result = collectionContent.Count == 0
+                ? new List<T>()
+                : collectionContent.Select(x => x.Content as T).Where(predicate!).AsQueryable().ToList()!;
+            return result;
         }
     }
 
@@ -575,10 +575,10 @@ public sealed class DbContext
                 return new List<IEntity>();
             }
 
-            var collection = collectionContent.OfType<IEntity>().ToList();
-
-            var result = collection.Count == 0 ? new List<IEntity>() : collection.Where(predicate).AsQueryable().ToList();
-            return result; 
+            var result = collectionContent.Count == 0
+                ? new List<IEntity>()
+                : collectionContent.Select(x => x.Content).Where(predicate!).AsQueryable().ToList()!;
+            return result;
         }
     }
 
@@ -608,10 +608,10 @@ public sealed class DbContext
                 return null;
             }
 
-            var collection = collectionContent.OfType<T>().ToList();
-
-            var result =  collection.Count == 0 ? null : collection.FirstOrDefault(predicate);
-            return result;
+            var result = collectionContent.Count == 0
+                ? null
+                : collectionContent.Select(x => x.Content).AsQueryable().FirstOrDefault(predicate as T);
+            return result as T;
         }
     }
 
@@ -641,9 +641,9 @@ public sealed class DbContext
                 return null;
             }
 
-            var collection = collectionContent.OfType<IEntity>().ToList();
-               
-            var result =  collection.Count == 0 ? null : collection.FirstOrDefault(predicate);
+            var result = collectionContent.Count == 0
+                ? null
+                : collectionContent.Select(x => x.Content).AsQueryable().FirstOrDefault(predicate!);
             return result;
         }
     }
@@ -671,9 +671,9 @@ public sealed class DbContext
                 return null;
             }
 
-            var collection = collectionContent.OfType<T>().ToList();
-
-            var result = collection.Count == 0 ? null : collection.FirstOrDefault(e => e.Id == id);
+            var result = collectionContent.Count == 0
+                ? null
+                : collectionContent.Select(x => x.Content as T).AsQueryable().FirstOrDefault(e => e!.Id == id);
             return result;
         }
     }
@@ -703,9 +703,16 @@ public sealed class DbContext
                 return null;
             }
 
-            var collection = collectionContent.OfType<IEntity>().ToList();
-
-            var result = collection.Count == 0 ? null : collection.FirstOrDefault(e => e.Id == id);
-            return result;            }
+            var result = collectionContent.Count == 0
+                ? null
+                : collectionContent.Select(x => x.Content).AsQueryable().FirstOrDefault(e => e!.Id == id);
+            return result;
+        }
+    }
+    
+    private static int EstimateSize(object obj)
+    {
+        var jsonString = JsonSerializer.Serialize(obj);
+        return Encoding.UTF8.GetBytes(jsonString).Length;
     }
 }
