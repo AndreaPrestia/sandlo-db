@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using SandloDb.Core.Builders;
 using SandloDb.Core.Configurations;
@@ -710,6 +708,11 @@ public sealed class DbContext
         }
     }
     
+    /// <summary>
+    /// It estimates bytes size
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns></returns>
     private static int EstimateSize(object obj)
     {
         var jsonString = JsonSerializer.Serialize(obj);
