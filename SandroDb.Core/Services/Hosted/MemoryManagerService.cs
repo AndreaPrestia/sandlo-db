@@ -1,7 +1,8 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using SandloDb.Core.Configurations;
 
-namespace SandloDb.Core;
+namespace SandloDb.Core.Services.Hosted;
 
 internal sealed class MemoryManagerService : BackgroundService
 {

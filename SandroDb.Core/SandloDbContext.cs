@@ -1,4 +1,6 @@
-﻿namespace SandloDb.Core;
+﻿using SandloDb.Core.Entities;
+
+namespace SandloDb.Core;
 
 public sealed class SandloDbContext
 {

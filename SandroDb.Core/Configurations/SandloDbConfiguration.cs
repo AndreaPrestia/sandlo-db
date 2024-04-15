@@ -1,4 +1,4 @@
-﻿namespace SandloDb.Core;
+﻿namespace SandloDb.Core.Configurations;
 
 internal static class SandloDbConfiguration
 {

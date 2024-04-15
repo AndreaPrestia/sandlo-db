@@ -1,4 +1,4 @@
-﻿namespace SandloDb.Core;
+﻿namespace SandloDb.Core.Configurations;
 
 public enum MemoryCleanUpPolicy
 {

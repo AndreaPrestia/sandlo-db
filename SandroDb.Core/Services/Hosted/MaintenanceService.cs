@@ -1,8 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using SandloDb.Core.Configurations;
 
-namespace SandloDb.Core;
+namespace SandloDb.Core.Services.Hosted;
 
 [ExcludeFromCodeCoverage]
 internal class MaintenanceService : BackgroundService

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SandloDb.Core;
+using SandloDb.Core.Entities;
 
 namespace SandloDb.Unit.Tests
 {
@@ -1297,7 +1298,6 @@ namespace SandloDb.Unit.Tests
             // Arrange
             var service = _host.Services.GetRequiredService<SandloDbContext>();
             var threads = new List<Thread>();
-            var generatedIds = new HashSet<Guid>();
 
             // Act
             for (int i = 0; i < numThreads; i++)
@@ -1340,7 +1340,7 @@ namespace SandloDb.Unit.Tests
         public void SandloDbContext_CompleteRun_MultiThread_Ok_Old(int parallelTasks, int chunkSize)
         {
             //arrange
-            var elementsToAdd = Enumerable.Range(0, chunkSize * parallelTasks).Select((e, j) =>
+            var elementsToAdd = Enumerable.Range(0, chunkSize * parallelTasks).Select((_, j) =>
                 new SandloDbTestEntity()
                 {
                     Description = $"description-{j}",
