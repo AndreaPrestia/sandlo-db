@@ -9,7 +9,7 @@ namespace SandloDb.Core.Extensions;
 [ExcludeFromCodeCoverage]
 public static class DependencyInjection
 {
-    public static void AddDbContext(this IHostBuilder builder, DbContextBuilder dbContextBuilder)
+    public static void AddInMemoryDbContext(this IHostBuilder builder, DbContextBuilder dbContextBuilder)
     {
         builder.ConfigureServices((_, services) =>
         {

@@ -3,9 +3,9 @@
 namespace SandloDb.Core.Entities;
 
 [ExcludeFromCodeCoverage]
-public sealed class DbSet<T> where T : IEntity
+internal sealed class DbSet<T> where T : IEntity
 {
-    public T? Content { get; set; }
-    public int CurrentSizeInBytes { get; set; }
-    public long LastUpdateTime { get; set; }
+    public T? Content { get; internal set; }
+    public int CurrentSizeInBytes { get; internal set; }
+    public long LastUpdateTime { get; internal set; }
 }

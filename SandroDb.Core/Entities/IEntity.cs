@@ -2,7 +2,7 @@
 
 public interface IEntity
 {
-    Guid Id { get; set; }
-    long Created { get; set; }
-    long Updated { get; set; }
+    Guid Id { get; internal set; }
+    long Created { get; internal set; }
+    long Updated { get; internal set; }
 }

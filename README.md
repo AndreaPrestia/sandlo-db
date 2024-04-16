@@ -11,14 +11,14 @@ var dbContextBuilder = DbContextBuilder
                 .WithEntityTtlMinutes(5)
                 .WithMaxMemoryAllocationInBytes(2000);
 
-builder.AddSandloDbContext(dbContextBuilder);
+builder.AddInMemoryDbContext(dbContextBuilder);
 ```
 
-You can create the **DbContextBuilder** instance with the **DbContextBuilder.Initialize()** static method and the **AddSandloDbContext** extension will register it.
+You can create the **DbContextBuilder** instance with the **DbContextBuilder.Initialize()** static method and the **AddInMemoryDbContext** extension will register it.
 
 It helps you to apply the **EntityTtlMinutes**, **MaxMemoryAllocationInBytes** with a **FluentBuilder** pattern.
 
-As you can see the **AddSandloDbContext** takes as input parameter an object of type **DbContextBuilder**. It is mandatory.
+As you can see the **AddInMemoryDbContext** takes as input parameter an object of type **DbContextBuilder**. It is mandatory.
 
 **DbContextBuilder**
 

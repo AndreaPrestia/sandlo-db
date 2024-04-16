@@ -1523,9 +1523,9 @@ namespace SandloDb.Unit.Tests
             public Guid Id { get; set; }
             public long Created { get; set; }
             public long Updated { get; set; }
-            public string? Name { get; set; }
-            public string? Description { get; set; }
-            public int Index { get; set; }
+            public string? Name { get; init; }
+            public string? Description { get; init; }
+            public int Index { get; init; }
             public decimal Price { get; set; }
         }
     }
