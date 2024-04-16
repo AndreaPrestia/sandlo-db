@@ -14,7 +14,7 @@ var dbContextBuilder = DbContextBuilder
 builder.AddSandloDbContext(dbContextBuilder);
 ```
 
-You can create the **DbContextBioòder**instance with the **DbContextBuilder** class and the **AddSandloDbContext** extension will register it.
+You can create the **DbContextBuilder** instance with the **DbContextBuilder.Initialize()** static method and the **AddSandloDbContext** extension will register it.
 
 It helps you to apply the **EntityTtlMinutes**, **MaxMemoryAllocationInBytes** with a **FluentBuilder** pattern.
 
