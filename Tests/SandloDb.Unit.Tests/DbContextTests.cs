@@ -1,4 +1,5 @@
 using System.Text.Json;
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SandloDb.Core;
@@ -27,7 +28,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Add_Ok()
+        public void Add_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -55,7 +56,7 @@ namespace SandloDb.Unit.Tests
         [Theory]
         [Trait("Category", "Concurrency")]
         [InlineData(20)]
-        public void DbContext_Add_MultiThread_Ok(int parallelTasks)
+        public void Add_MultiThread_Ok(int parallelTasks)
         {
             //arrange
             var tasks = new Task[parallelTasks];
@@ -96,7 +97,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Add_Entity_Null_Ko()
+        public void Add_Entity_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -109,7 +110,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_AddMany_Ok()
+        public void AddMany_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -134,7 +135,7 @@ namespace SandloDb.Unit.Tests
 
             //assert
             Assert.NotNull(result);
-            Assert.Collection(result, eOne =>
+            Assert.Collection(result, [UsedImplicitly] (eOne) =>
                 {
                     Assert.NotEqual(Guid.Empty, eOne.Id);
                     Assert.NotEqual(0, eOne.Created);
@@ -144,7 +145,7 @@ namespace SandloDb.Unit.Tests
                     Assert.Equal(entity.Name, eOne.Name);
                     Assert.Equal(entity.Description, eOne.Description);
                 },
-                eTwo =>
+                [UsedImplicitly] (eTwo) =>
                 {
                     Assert.NotEqual(Guid.Empty, eTwo.Id);
                     Assert.NotEqual(0, eTwo.Created);
@@ -157,7 +158,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_AddMany_Entity_Null_Ko()
+        public void AddMany_Entity_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -172,10 +173,10 @@ namespace SandloDb.Unit.Tests
         [Theory]
         [Trait("Category", "Concurrency")]
         [InlineData(20, 20)]
-        public void DbContext_AddMany_MultiThread_Ok(int parallelTasks, int chunkSize)
+        public void AddMany_MultiThread_Ok(int parallelTasks, int chunkSize)
         {
             //arrange
-            var elementsToAdd = Enumerable.Range(0, chunkSize * parallelTasks).Select((e, j) =>
+            var elementsToAdd = Enumerable.Range(0, chunkSize * parallelTasks).Select((_, j) =>
                 new TestEntity()
                 {
                     Description = $"description-{j}",
@@ -224,7 +225,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Update_Ok()
+        public void Update_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -269,7 +270,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Update_Entity_Null_Ko()
+        public void Update_Entity_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -282,7 +283,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Update_Collection_Not_Found_Ko()
+        public void Update_Collection_Not_Found_Ko()
         {
             //arrange
             var entity = new TestEntity()
@@ -302,7 +303,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_UpdateMany_Ok()
+        public void UpdateMany_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -330,7 +331,7 @@ namespace SandloDb.Unit.Tests
 
             //assert
             Assert.NotNull(result);
-            Assert.Collection(result, eOne =>
+            Assert.Collection(result, [UsedImplicitly] (eOne) =>
                 {
                     Assert.NotEqual(Guid.Empty, eOne.Id);
                     Assert.NotEqual(0, eOne.Created);
@@ -340,7 +341,7 @@ namespace SandloDb.Unit.Tests
                     Assert.Equal(entity.Name, eOne.Name);
                     Assert.Equal(entity.Description, eOne.Description);
                 },
-                eTwo =>
+                [UsedImplicitly] (eTwo) =>
                 {
                     Assert.NotEqual(Guid.Empty, eTwo.Id);
                     Assert.NotEqual(0, eTwo.Created);
@@ -375,7 +376,7 @@ namespace SandloDb.Unit.Tests
             });
 
             Assert.NotNull(updateResult);
-            Assert.Collection(updateResult.OrderBy(x => x.Index).ToList(), eOne =>
+            Assert.Collection(updateResult.OrderBy(x => x.Index).ToList(), [UsedImplicitly] (eOne) =>
                 {
                     Assert.Equal(entityUpdated.Id, eOne.Id);
                     Assert.Equal(entityUpdated.Created, eOne.Created);
@@ -383,7 +384,7 @@ namespace SandloDb.Unit.Tests
                     Assert.Equal(entityUpdated.Name, eOne.Name);
                     Assert.Equal(entityUpdated.Description, eOne.Description);
                 },
-                eTwo =>
+                [UsedImplicitly] (eTwo) =>
                 {
                     Assert.Equal(entityTwoUpdated.Id, eTwo.Id);
                     Assert.Equal(entityTwoUpdated.Created, eTwo.Created);
@@ -394,7 +395,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_UpdateMany_Entity_Null_Ko()
+        public void UpdateMany_Entity_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -407,7 +408,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_UpdateMany_Collection_Not_Found_Ko()
+        public void UpdateMany_Collection_Not_Found_Ko()
         {
             //arrange
             var entity = new TestEntity()
@@ -435,7 +436,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Remove_Ok()
+        public void Remove_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -466,7 +467,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Remove_Entity_Null_Ko()
+        public void Remove_Entity_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -479,7 +480,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Remove_Collection_Not_Found_Ko()
+        public void Remove_Collection_Not_Found_Ko()
         {
             //arrange
             var entity = new TestEntity()
@@ -498,7 +499,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_RemoveMany_Ok()
+        public void RemoveMany_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -523,7 +524,7 @@ namespace SandloDb.Unit.Tests
 
             //assert
             Assert.NotNull(result);
-            Assert.Collection(result, eOne =>
+            Assert.Collection(result, [UsedImplicitly] (eOne) =>
                 {
                     Assert.NotEqual(Guid.Empty, eOne.Id);
                     Assert.NotEqual(0, eOne.Created);
@@ -533,7 +534,7 @@ namespace SandloDb.Unit.Tests
                     Assert.Equal(entity.Name, eOne.Name);
                     Assert.Equal(entity.Description, eOne.Description);
                 },
-                eTwo =>
+                [UsedImplicitly] (eTwo) =>
                 {
                     Assert.NotEqual(Guid.Empty, eTwo.Id);
                     Assert.NotEqual(0, eTwo.Created);
@@ -550,7 +551,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_RemoveMany_Entity_Null_Ko()
+        public void RemoveMany_Entity_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -563,7 +564,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_RemoveMany_Collection_Not_Found_Ko()
+        public void RemoveMany_Collection_Not_Found_Ko()
         {
             //arrange
             var entity = new TestEntity()
@@ -591,7 +592,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_All_Ok()
+        public void Get_All_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -619,7 +620,7 @@ namespace SandloDb.Unit.Tests
             var getAllResult = service.GetAll<TestEntity>();
 
             Assert.NotNull(getAllResult);
-            Assert.Collection(getAllResult, e =>
+            Assert.Collection(getAllResult, [UsedImplicitly] (e) =>
             {
                 Assert.Equal(result.Id, e.Id);
                 Assert.Equal(result.Created, e.Created);
@@ -630,7 +631,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_All_Collection_Not_Found_Ok()
+        public void Get_All_Collection_Not_Found_Ok()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -644,7 +645,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Ok()
+        public void Get_By_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -672,7 +673,7 @@ namespace SandloDb.Unit.Tests
             var getAllResult = service.GetBy<TestEntity>(x => x.Name == "name");
 
             Assert.NotNull(getAllResult);
-            Assert.Collection(getAllResult, e =>
+            Assert.Collection(getAllResult, [UsedImplicitly] (e) =>
             {
                 Assert.Equal(result.Id, e.Id);
                 Assert.Equal(result.Created, e.Created);
@@ -683,7 +684,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Predicate_Null_Ko()
+        public void Get_By_Predicate_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -696,7 +697,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Collection_Not_Found_Ok()
+        public void Get_By_Collection_Not_Found_Ok()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -710,7 +711,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_Ok()
+        public void Get_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -746,7 +747,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_Predicate_Null_Ko()
+        public void Get_Predicate_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -759,7 +760,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_Collection_Not_Found_Ok()
+        public void Get_Collection_Not_Found_Ok()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -772,7 +773,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Id_Ok()
+        public void Get_By_Id_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -808,7 +809,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Id_Collection_Not_Found_Ok()
+        public void Get_By_Id_Collection_Not_Found_Ok()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -821,7 +822,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_All_By_Type_Ok()
+        public void Get_All_By_Type_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -862,7 +863,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_All_By_Type_Type_Null_Ko()
+        public void Get_All_By_Type_Type_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -875,7 +876,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_All_By_Type_Collection_Not_Found_Ok()
+        public void Get_All_By_Type_Collection_Not_Found_Ok()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -889,7 +890,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Type_Ok()
+        public void Get_By_Type_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -931,7 +932,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Type_Predicate_Null_Ko()
+        public void Get_By_Type_Predicate_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -944,7 +945,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Type_Type_Null_Ko()
+        public void Get_By_Type_Type_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -957,7 +958,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Type_Collection_Not_Found_Ok()
+        public void Get_By_Type_Collection_Not_Found_Ok()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -971,7 +972,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_Type_Ok()
+        public void Get_Type_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -1009,7 +1010,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_Type_Predicate_Null_Ko()
+        public void Get_Type_Predicate_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -1022,7 +1023,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_Type_Type_Null_Ko()
+        public void Get_Type_Type_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -1035,7 +1036,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Id_By_Type_Ok()
+        public void Get_By_Id_By_Type_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -1073,7 +1074,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Id_By_Type_Type_Null_Ko()
+        public void Get_By_Id_By_Type_Type_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -1086,7 +1087,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Get_By_Id_By_Type_Collection_Not_Found_Ok()
+        public void Get_By_Id_By_Type_Collection_Not_Found_Ok()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -1099,7 +1100,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Remove_By_Type_Ok()
+        public void Remove_By_Type_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -1130,7 +1131,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Remove_By_Type_Entity_Null_Ko()
+        public void Remove_By_Type_Entity_Null_Ko()
         {
             //arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -1143,7 +1144,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Remove_By_Type_Type_Null_Ko()
+        public void Remove_By_Type_Type_Null_Ko()
         {
             //arrange
             var entity = new TestEntity()
@@ -1162,7 +1163,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_Remove_By_Type_Collection_Not_Found_Ko()
+        public void Remove_By_Type_Collection_Not_Found_Ko()
         {
             //arrange
             var entity = new TestEntity()
@@ -1181,7 +1182,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_RemoveMany_By_Type_Ok()
+        public void RemoveMany_By_Type_Ok()
         {
             //arrange
             var entity = new TestEntity()
@@ -1206,7 +1207,7 @@ namespace SandloDb.Unit.Tests
 
             //assert
             Assert.NotNull(result);
-            Assert.Collection(result, eOne =>
+            Assert.Collection(result, [UsedImplicitly](eOne) =>
                 {
                     Assert.NotEqual(Guid.Empty, eOne.Id);
                     Assert.NotEqual(0, eOne.Created);
@@ -1216,7 +1217,7 @@ namespace SandloDb.Unit.Tests
                     Assert.Equal(entity.Name, eOne.Name);
                     Assert.Equal(entity.Description, eOne.Description);
                 },
-                eTwo =>
+                [UsedImplicitly] (eTwo) =>
                 {
                     Assert.NotEqual(Guid.Empty, eTwo.Id);
                     Assert.NotEqual(0, eTwo.Created);
@@ -1233,7 +1234,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_RemoveMany_By_Type_Entities_Null_Ko()
+        public void RemoveMany_By_Type_Entities_Null_Ko()
         {
             var service = _host.Services.GetRequiredService<DbContext>();
 
@@ -1245,7 +1246,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_RemoveMany_By_Type_Type_Null_Ko()
+        public void RemoveMany_By_Type_Type_Null_Ko()
         {
             //arrange
             var entity = new TestEntity()
@@ -1273,7 +1274,7 @@ namespace SandloDb.Unit.Tests
         }
 
         [Fact]
-        public void DbContext_RemoveMany_By_Type_Collection_Not_Found_Ko()
+        public void RemoveMany_By_Type_Collection_Not_Found_Ko()
         {
             //arrange
             var entity = new TestEntity()
@@ -1303,7 +1304,7 @@ namespace SandloDb.Unit.Tests
         [Theory]
         [Trait("Category", "Concurrency")]
         [InlineData(2, 20)]
-        public void DbContext_CompleteRun_MultiThread_Ok(int numThreads, int numIterations)
+        public void CompleteRun_MultiThread_Ok(int numThreads, int numIterations)
         {
             // Arrange
             var service = _host.Services.GetRequiredService<DbContext>();
@@ -1347,7 +1348,7 @@ namespace SandloDb.Unit.Tests
            [Theory]
         [Trait("Category", "Concurrency")]
         [InlineData(20, 20)]
-        public void DbContext_CompleteRun_MultiThread_Ok_Old(int parallelTasks, int chunkSize)
+        public void CompleteRun_MultiThread_Ok_Old(int parallelTasks, int chunkSize)
         {
             //arrange
             var elementsToAdd = Enumerable.Range(0, chunkSize * parallelTasks).Select((_, j) =>
@@ -1455,7 +1456,7 @@ namespace SandloDb.Unit.Tests
             });
             
             var toBeDeletedChunkedEntities = toBeDeletedOrderResult
-                .Select((x, j) => new TestEntity()
+                .Select((x, _) => new TestEntity()
                 {
                     Index = x.Index,
                     Description = x.Description,
@@ -1486,7 +1487,7 @@ namespace SandloDb.Unit.Tests
         }
         
         [Fact]
-        public void DbContext_Get_Size_Ok()
+        public void Get_Size_Ok()
         {
             //arrange
             var entity = new TestEntity()
