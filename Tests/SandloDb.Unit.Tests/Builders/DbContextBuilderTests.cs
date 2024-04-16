@@ -1,6 +1,6 @@
 ﻿using SandloDb.Core.Builders;
 
-namespace SandloDb.Unit.Tests;
+namespace SandloDb.Unit.Tests.Builders;
 
 public class DbContextBuilderTests
 {
