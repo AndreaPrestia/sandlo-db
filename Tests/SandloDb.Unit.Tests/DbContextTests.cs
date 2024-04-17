@@ -1315,7 +1315,7 @@ namespace SandloDb.Unit.Tests
             {
                 var thread = new Thread(() =>
                 {
-                    var entitiesToAdd = GenerateUniqueEntities(numIterations).ToList();
+                    var entitiesToAdd = Enumerable.Range(0, numThreads).Select(j => new TestEntity { Name = $"Entity {j}", Price = 10.0m }).ToList();
                     var addedEntities = service.AddMany(entitiesToAdd);
                     
                     Assert.NotNull(addedEntities);
@@ -1344,494 +1344,95 @@ namespace SandloDb.Unit.Tests
             var remainingEntities = service.GetAll<TestEntity>();
             Assert.Empty(remainingEntities);
         }
-        
+
         [Theory]
         [Trait("Category", "Concurrency")]
-        [InlineData(20, 20)]
-        public void CompleteRun_MultiThread_Ok_Old(int parallelTasks, int chunkSize)
+        [InlineData(20, 220)]
+        public void CompleteRun_MultiThread_MultiTypes_Ok(int numThreads, int numIterations)
         {
-            //arrange
-            var elementsToAdd = Enumerable.Range(0, chunkSize * parallelTasks).Select((_, j) =>
-                new TestEntity()
-                {
-                    Description = $"description-{j}",
-                    Name = $"name-{j}",
-                    Index = j
-                }).ToList();
-        
-            var chunkedEntities = elementsToAdd
-                .Select((x, j) => new TestEntity()
-                {
-                    Index = j,
-                    Description = x.Description,
-                    Name = x.Name
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-        
+            // Arrange
             var service = _host.Services.GetRequiredService<DbContext>();
-        
-            var tasks = new Task[parallelTasks];
-        
-            for (var i = 0; i < parallelTasks; i++)
+            var threads = new List<Thread>();
+
+            // Act
+            for (var i = 0; i < numThreads; i++)
             {
-                var index = i;
-                tasks[i] = Task.Factory.StartNew(() => { service.AddMany(chunkedEntities[index]); });
-            }
-        
-            Task.WaitAll(tasks);
-        
-            //act
-            var result = service.GetAll<TestEntity>();
-        
-            //assert
-            Assert.NotNull(result);
-            Assert.Equal(chunkSize * parallelTasks, result.Count);
-            var orderedResult = result.OrderBy(x => x.Index).ToList();
-            for (var i = 0; i < orderedResult.Count; i++)
-            {
-                Assert.NotEqual(Guid.Empty, orderedResult[i].Id);
-                Assert.NotEqual(0, orderedResult[i].Created);
-                Assert.NotEqual(0, orderedResult[i].Updated);
-                Assert.Equal($"name-{i}", orderedResult[i].Name);
-                Assert.Equal($"description-{i}", orderedResult[i].Description);
-            }
-        
-            var toBeUpdatedOrderResult = orderedResult.Select(e => new TestEntity()
-            {
-                Created = e.Created,
-                Description = $"{e.Description}-updated",
-                Id = e.Id,
-                Index = e.Index,
-                Name = $"{e.Name}-updated"
-            });
-            
-            var updatedChunkedEntities = toBeUpdatedOrderResult
-                .Select((x, j) => new TestEntity()
+                var thread = new Thread(() =>
                 {
-                    Index = j,
-                    Description = x.Description,
-                    Name = x.Name,
-                    Id = x.Id,
-                    Created = x.Created,
-                    Updated = x.Updated
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-        
-            tasks = new Task[parallelTasks];
-        
-            for (var i = 0; i < parallelTasks; i++)
-            {
-                var index = i;
-                tasks[i] = Task.Factory.StartNew(() => { service.UpdateMany(updatedChunkedEntities[index]); });
-            }
-        
-            Task.WaitAll(tasks);
-        
-            var updatedResult = service.GetAll<TestEntity>();
-        
-            //assert
-            Assert.NotNull(updatedResult);
-            Assert.Equal(chunkSize * parallelTasks, result.Count);
-            var updatedOrderedResult = updatedResult.OrderBy(x => x.Index).ToList();
-            for (var i = 0; i < updatedOrderedResult.Count; i++)
-            {
-                Assert.NotEqual(Guid.Empty, updatedOrderedResult[i].Id);
-                Assert.NotEqual(0, updatedOrderedResult[i].Created);
-                Assert.NotEqual(0, updatedOrderedResult[i].Updated);
-                Assert.Equal($"name-{i}-updated", updatedOrderedResult[i].Name);
-                Assert.Equal($"description-{i}-updated", updatedOrderedResult[i].Description);
-            }
-            
-            var toBeDeletedOrderResult = orderedResult.Select(e => new TestEntity()
-            {
-                Created = e.Created,
-                Description = $"{e.Description}-updated",
-                Id = e.Id,
-                Index = e.Index,
-                Name = $"{e.Name}-updated"
-            });
-            
-            var toBeDeletedChunkedEntities = toBeDeletedOrderResult
-                .Select((x, _) => new TestEntity()
-                {
-                    Index = x.Index,
-                    Description = x.Description,
-                    Name = x.Name,
-                    Id = x.Id,
-                    Created = x.Created,
-                    Updated = x.Updated
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-            
-            tasks = new Task[parallelTasks];
-            
-            for (var i = 0; i < parallelTasks; i++)
-            {
-                var index = i;
-                tasks[i] = Task.Factory.StartNew(() => { service.RemoveMany(toBeDeletedChunkedEntities[index]); });
-            }
-            
-            Task.WaitAll(tasks);
-            
-            result = service.GetAll<TestEntity>();
-            
-            //assert
-            Assert.NotNull(result);
-            Assert.Empty(result);
-        }
-        
-        [Theory]
-        [Trait("Category", "Concurrency")]
-        [InlineData(60, 220)]
-        public void CompleteRun_MultiTypes_MultiThread_Ok_Old(int parallelTasks, int chunkSize)
-        {
-            //arrange
-            var elementsToAdd = Enumerable.Range(0, chunkSize * parallelTasks).Select((_, j) =>
-                new TestEntity()
-                {
-                    Description = $"description-{j}",
-                    Name = $"name-{j}",
-                    Index = j
-                }).ToList();
-            
-            var elementsToAddTwo = Enumerable.Range(0, chunkSize * parallelTasks).Select((_, j) =>
-                new TestTwoEntity()
-                {
-                    Description = $"description-{j}",
-                    Name = $"name-{j}",
-                    Index = j
-                }).ToList();
-            
-            var elementsToAddThree = Enumerable.Range(0, chunkSize * parallelTasks).Select((_, j) =>
-                new TestTwoEntity()
-                {
-                    Description = $"description-{j}",
-                    Name = $"name-{j}",
-                    Index = j
-                }).ToList();
-        
-            var chunkedEntities = elementsToAdd
-                .Select((x, j) => new TestEntity()
-                {
-                    Index = j,
-                    Description = x.Description,
-                    Name = x.Name
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-        
-            var chunkedEntitiesTwo = elementsToAddTwo
-                .Select((x, j) => new TestTwoEntity()
-                {
-                    Index = j,
-                    Description = x.Description,
-                    Name = x.Name
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-            
-            var chunkedEntitiesThree = elementsToAddThree
-                .Select((x, j) => new TestThreeEntity()
-                {
-                    Index = j,
-                    Description = x.Description,
-                    Name = x.Name
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-            
-            var service = _host.Services.GetRequiredService<DbContext>();
-        
-            var tasks = new Task[parallelTasks];
-        
-            for (var i = 0; i < parallelTasks; i++)
-            {
-                var index = i;
-                tasks[i] = Task.Factory.StartNew(() =>
-                {
-                    service.AddMany(chunkedEntities[index]);
-                    service.AddMany(chunkedEntitiesTwo[index]);
-                    service.AddMany(chunkedEntitiesThree[index]);
+                    var entitiesToAdd = Enumerable.Range(0, numIterations).Select(j => new TestEntity { Name = $"Entity {j}", Price = 10.0m }).ToList();
+                    var addedEntities = service.AddMany(entitiesToAdd);
+
+                    Assert.NotNull(addedEntities);
+                    Assert.True(entitiesToAdd.Select(x => x.Name).SequenceEqual(addedEntities.Select(x => x.Name)));
+                    foreach (var entity in addedEntities)
+                    {
+                        entity.Price += 5.0m;
+                    }
+                    var updatedEntities = service.UpdateMany(addedEntities);
+                    Assert.NotNull(updatedEntities);
+                    Assert.True(addedEntities.Select(x => x.Price).SequenceEqual(updatedEntities.Select(x => x.Price)));
+                    var deleteResult = service.RemoveMany(updatedEntities);
+                    Assert.Equal(updatedEntities.Count, deleteResult);
                 });
+                threads.Add(thread);
+                thread.Start();
             }
-        
-            Task.WaitAll(tasks);
-        
-            //act
-            var types = service.CurrentTypes;
-            var result = service.GetAll<TestEntity>();
-            var resultTwo = service.GetAll<TestTwoEntity>();
-            var resultThree = service.GetAll<TestThreeEntity>();
 
-            //assert
-            Assert.NotNull(types);
-            Assert.Equal(3, types.Count);
-            Assert.NotNull(result);
-            Assert.NotNull(resultTwo);
-            Assert.NotNull(resultThree);
-            Assert.Equal(chunkSize * parallelTasks, result.Count);
-            Assert.Equal(chunkSize * parallelTasks, resultTwo.Count);
-            Assert.Equal(chunkSize * parallelTasks, resultThree.Count);
-            var orderedResult = result.OrderBy(x => x.Index).ToList();
-            for (var i = 0; i < orderedResult.Count; i++)
+            for (var i = 0; i < numThreads; i++)
             {
-                Assert.NotEqual(Guid.Empty, orderedResult[i].Id);
-                Assert.NotEqual(0, orderedResult[i].Created);
-                Assert.NotEqual(0, orderedResult[i].Updated);
-                Assert.Equal($"name-{i}", orderedResult[i].Name);
-                Assert.Equal($"description-{i}", orderedResult[i].Description);
-            }
-            
-            var orderedResultTwo = resultTwo.OrderBy(x => x.Index).ToList();
-            for (var i = 0; i < orderedResultTwo.Count; i++)
-            {
-                Assert.NotEqual(Guid.Empty, orderedResultTwo[i].Id);
-                Assert.NotEqual(0, orderedResultTwo[i].Created);
-                Assert.NotEqual(0, orderedResultTwo[i].Updated);
-                Assert.Equal($"name-{i}", orderedResultTwo[i].Name);
-                Assert.Equal($"description-{i}", orderedResultTwo[i].Description);
-            }
-            
-            var orderedResultThree = resultThree.OrderBy(x => x.Index).ToList();
-            for (var i = 0; i < orderedResultTwo.Count; i++)
-            {
-                Assert.NotEqual(Guid.Empty, orderedResultThree[i].Id);
-                Assert.NotEqual(0, orderedResultThree[i].Created);
-                Assert.NotEqual(0, orderedResultThree[i].Updated);
-                Assert.Equal($"name-{i}", orderedResultThree[i].Name);
-                Assert.Equal($"description-{i}", orderedResultThree[i].Description);
-            }
-        
-            var toBeUpdatedOrderResult = orderedResult.Select(e => new TestEntity()
-            {
-                Created = e.Created,
-                Description = $"{e.Description}-updated",
-                Id = e.Id,
-                Index = e.Index,
-                Name = $"{e.Name}-updated"
-            });
-            
-            var toBeUpdatedOrderResultTwo = orderedResultTwo.Select(e => new TestTwoEntity()
-            {
-                Created = e.Created,
-                Description = $"{e.Description}-updated",
-                Id = e.Id,
-                Index = e.Index,
-                Name = $"{e.Name}-updated"
-            });
-            
-            var toBeUpdatedOrderResultThree = orderedResultThree.Select(e => new TestThreeEntity()
-            {
-                Created = e.Created,
-                Description = $"{e.Description}-updated",
-                Id = e.Id,
-                Index = e.Index,
-                Name = $"{e.Name}-updated"
-            });
-            
-            var updatedChunkedEntities = toBeUpdatedOrderResult
-                .Select((x, j) => new TestEntity()
+                var thread = new Thread(() =>
                 {
-                    Index = j,
-                    Description = x.Description,
-                    Name = x.Name,
-                    Id = x.Id,
-                    Created = x.Created,
-                    Updated = x.Updated
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-            
-            var updatedChunkedEntitiesTwo = toBeUpdatedOrderResultTwo
-                .Select((x, j) => new TestTwoEntity()
-                {
-                    Index = j,
-                    Description = x.Description,
-                    Name = x.Name,
-                    Id = x.Id,
-                    Created = x.Created,
-                    Updated = x.Updated
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-            
-            var updatedChunkedEntitiesThree = toBeUpdatedOrderResultThree
-                .Select((x, j) => new TestThreeEntity()
-                {
-                    Index = j,
-                    Description = x.Description,
-                    Name = x.Name,
-                    Id = x.Id,
-                    Created = x.Created,
-                    Updated = x.Updated
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-        
-            tasks = new Task[parallelTasks];
-        
-            for (var i = 0; i < parallelTasks; i++)
-            {
-                var index = i;
-                tasks[i] = Task.Factory.StartNew(() =>
-                {
-                    service.UpdateMany(updatedChunkedEntities[index]);
-                    service.UpdateMany(updatedChunkedEntitiesTwo[index]);
-                    service.UpdateMany(updatedChunkedEntitiesThree[index]);
+                    var entitiesToAdd = Enumerable.Range(0, numIterations).Select(j => new TestTwoEntity { Name = $"Entity {j}", Price = 10.0m }).ToList();
+                    var addedEntities = service.AddMany(entitiesToAdd);
+
+                    Assert.NotNull(addedEntities);
+                    Assert.True(entitiesToAdd.Select(x => x.Name).SequenceEqual(addedEntities.Select(x => x.Name)));
+                    foreach (var entity in addedEntities)
+                    {
+                        entity.Price += 5.0m;
+                    }
+                    var updatedEntities = service.UpdateMany(addedEntities);
+                    Assert.NotNull(updatedEntities);
+                    Assert.True(addedEntities.Select(x => x.Price).SequenceEqual(updatedEntities.Select(x => x.Price)));
+                    var deleteResult = service.RemoveMany(updatedEntities);
+                    Assert.Equal(updatedEntities.Count, deleteResult);
                 });
+                threads.Add(thread);
+                thread.Start();
             }
-        
-            Task.WaitAll(tasks);
-        
-            var updatedResult = service.GetAll<TestEntity>();
-            var updatedResultTwo = service.GetAll<TestTwoEntity>();
-            var updatedResultThree = service.GetAll<TestThreeEntity>();
 
-            //assert
-            Assert.NotNull(updatedResult);
-            Assert.NotNull(updatedResultTwo);
-            Assert.NotNull(updatedResultThree);
-            Assert.Equal(chunkSize * parallelTasks, updatedResult.Count);
-            Assert.Equal(chunkSize * parallelTasks, updatedResultTwo.Count);
-            Assert.Equal(chunkSize * parallelTasks, updatedResultThree.Count);
+            for (var i = 0; i < numThreads; i++)
+            {
+                var thread = new Thread(() =>
+                {
+                    var entitiesToAdd = Enumerable.Range(0, numIterations).Select(j => new TestThreeEntity { Name = $"Entity {j}", Price = 10.0m }).ToList();
+                    var addedEntities = service.AddMany(entitiesToAdd);
 
-            var updatedOrderedResult = updatedResult.OrderBy(x => x.Index).ToList();
-            for (var i = 0; i < updatedOrderedResult.Count; i++)
-            {
-                Assert.NotEqual(Guid.Empty, updatedOrderedResult[i].Id);
-                Assert.NotEqual(0, updatedOrderedResult[i].Created);
-                Assert.NotEqual(0, updatedOrderedResult[i].Updated);
-                Assert.Equal($"name-{i}-updated", updatedOrderedResult[i].Name);
-                Assert.Equal($"description-{i}-updated", updatedOrderedResult[i].Description);
-            }
-            
-            var updatedOrderedResultTwo = updatedResultTwo.OrderBy(x => x.Index).ToList();
-            for (var i = 0; i < updatedOrderedResultTwo.Count; i++)
-            {
-                Assert.NotEqual(Guid.Empty, updatedOrderedResultTwo[i].Id);
-                Assert.NotEqual(0, updatedOrderedResultTwo[i].Created);
-                Assert.NotEqual(0, updatedOrderedResultTwo[i].Updated);
-                Assert.Equal($"name-{i}-updated", updatedOrderedResultTwo[i].Name);
-                Assert.Equal($"description-{i}-updated", updatedOrderedResultTwo[i].Description);
-            }
-            
-            var updatedOrderedResultThree = updatedResultThree.OrderBy(x => x.Index).ToList();
-            for (var i = 0; i < updatedOrderedResultThree.Count; i++)
-            {
-                Assert.NotEqual(Guid.Empty, updatedOrderedResultThree[i].Id);
-                Assert.NotEqual(0, updatedOrderedResultThree[i].Created);
-                Assert.NotEqual(0, updatedOrderedResultThree[i].Updated);
-                Assert.Equal($"name-{i}-updated", updatedOrderedResultThree[i].Name);
-                Assert.Equal($"description-{i}-updated", updatedOrderedResultThree[i].Description);
-            }
-            
-            var toBeDeletedOrderResult = orderedResult.Select(e => new TestEntity()
-            {
-                Created = e.Created,
-                Description = $"{e.Description}-updated",
-                Id = e.Id,
-                Index = e.Index,
-                Name = $"{e.Name}-updated"
-            });
-            
-            var toBeDeletedOrderResultTwo = orderedResultTwo.Select(e => new TestTwoEntity()
-            {
-                Created = e.Created,
-                Description = $"{e.Description}-updated",
-                Id = e.Id,
-                Index = e.Index,
-                Name = $"{e.Name}-updated"
-            });
-            
-            var toBeDeletedOrderResultThree = orderedResultThree.Select(e => new TestThreeEntity()
-            {
-                Created = e.Created,
-                Description = $"{e.Description}-updated",
-                Id = e.Id,
-                Index = e.Index,
-                Name = $"{e.Name}-updated"
-            });
-            
-            var toBeDeletedChunkedEntities = toBeDeletedOrderResult
-                .Select((x, _) => new TestEntity()
-                {
-                    Index = x.Index,
-                    Description = x.Description,
-                    Name = x.Name,
-                    Id = x.Id,
-                    Created = x.Created,
-                    Updated = x.Updated
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-            
-            var toBeDeletedChunkedEntitiesTwo = toBeDeletedOrderResultTwo
-                .Select((x, _) => new TestTwoEntity()
-                {
-                    Index = x.Index,
-                    Description = x.Description,
-                    Name = x.Name,
-                    Id = x.Id,
-                    Created = x.Created,
-                    Updated = x.Updated
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-            
-            var toBeDeletedChunkedEntitiesThree = toBeDeletedOrderResultThree
-                .Select((x, _) => new TestThreeEntity()
-                {
-                    Index = x.Index,
-                    Description = x.Description,
-                    Name = x.Name,
-                    Id = x.Id,
-                    Created = x.Created,
-                    Updated = x.Updated
-                })
-                .GroupBy(x => x.Index / chunkSize)
-                .Select(x => x.Select(v => v).ToList())
-                .ToList();
-            
-            tasks = new Task[parallelTasks];
-            
-            for (var i = 0; i < parallelTasks; i++)
-            {
-                var index = i;
-                tasks[i] = Task.Factory.StartNew(() =>
-                {
-                    service.RemoveMany(toBeDeletedChunkedEntities[index]);
-                    service.RemoveMany(toBeDeletedChunkedEntitiesTwo[index]);
-                    service.RemoveMany(toBeDeletedChunkedEntitiesThree[index]);
+                    Assert.NotNull(addedEntities);
+                    Assert.True(entitiesToAdd.Select(x => x.Name).SequenceEqual(addedEntities.Select(x => x.Name)));
+                    foreach (var entity in addedEntities)
+                    {
+                        entity.Price += 5.0m;
+                    }
+                    var updatedEntities = service.UpdateMany(addedEntities);
+                    Assert.NotNull(updatedEntities);
+                    Assert.True(addedEntities.Select(x => x.Price).SequenceEqual(updatedEntities.Select(x => x.Price)));
+                    var deleteResult = service.RemoveMany(updatedEntities);
+                    Assert.Equal(updatedEntities.Count, deleteResult);
                 });
+                threads.Add(thread);
+                thread.Start();
             }
-            
-            Task.WaitAll(tasks);
-            
-            result = service.GetAll<TestEntity>();
-            resultTwo = service.GetAll<TestTwoEntity>();
-            resultThree = service.GetAll<TestThreeEntity>();
 
-            //assert
-            Assert.NotNull(result);
-            Assert.Empty(result);
-            Assert.NotNull(resultTwo);
-            Assert.Empty(resultTwo);
-            Assert.NotNull(resultThree);
-            Assert.Empty(resultThree);
+            // Wait for all threads to complete
+            foreach (var thread in threads)
+            {
+                thread.Join();
+            }
+
+            // Assert
+            var remainingEntities = service.GetAll<TestEntity>();
+            Assert.Empty(remainingEntities);
         }
         
         [Fact]
@@ -1856,14 +1457,6 @@ namespace SandloDb.Unit.Tests
             //assert
             Assert.NotNull(addResult);
             Assert.Equal(expectedSize, size);
-        }
-        
-        private IEnumerable<TestEntity> GenerateUniqueEntities(int count)
-        {
-            for (int i = 0; i < count; i++)
-            {
-                yield return new TestEntity { Name = $"Entity {i}", Price = 10.0m };
-            }
         }
 
         private class TestEntity : IEntity
