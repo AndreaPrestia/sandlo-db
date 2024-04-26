@@ -7,13 +7,14 @@ namespace SandloDb.Core;
 
 public sealed class DbContext
 {
-    private Dictionary<Type, List<DbSet<IEntity>>>? _collections = new();
+    private Dictionary<Type, List<DbSet<IEntity>>>? _collections;
     private long CurrentTimestamp => new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
-    private readonly object _lock = new();
+    private readonly object _lock;
 
     private DbContext()
     {
-        
+        _collections = [];
+        _lock = new();
     }
 
     internal static DbContext Create()
