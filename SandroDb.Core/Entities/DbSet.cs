@@ -3,7 +3,7 @@
 namespace SandloDb.Core.Entities;
 
 [ExcludeFromCodeCoverage]
-internal sealed class DbSet<T> where T : IEntity
+internal sealed class DbSet<T> where T : class
 {
     public T? Content { get; internal set; }
     public int CurrentSizeInBytes { get; internal set; }

@@ -1303,8 +1303,8 @@ namespace SandloDb.Unit.Tests
 
         [Theory]
         [Trait("Category", "Concurrency")]
-        [InlineData(20, 220)]
-        public void CompleteRun_MultiThread_Ok(int numThreads, int numIterations)
+        [InlineData(20)]
+        public void CompleteRun_MultiThread_Ok(int numThreads)
         {
             // Arrange
             var service = _host.Services.GetRequiredService<DbContext>();

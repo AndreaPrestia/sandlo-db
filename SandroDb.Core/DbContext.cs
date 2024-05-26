@@ -7,13 +7,13 @@ namespace SandloDb.Core;
 
 public sealed class DbContext
 {
-    private Dictionary<Type, List<DbSet<IEntity>>>? _collections;
+    private Dictionary<Type, List<DbSet<object>>>? _collections;
     private long CurrentTimestamp => new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
     private readonly object _lock;
 
     private DbContext()
     {
-        _collections = [];
+        _collections = new Dictionary<Type, List<DbSet<object>>>();
         _lock = new();
     }
 
@@ -76,7 +76,7 @@ public sealed class DbContext
     /// <param name="entity"></param>
     /// <exception cref="ArgumentNullException">if entity is null</exception>
     /// <returns></returns>
-    public T Add<T>(T? entity) where T : class, IEntity
+    public T Add<T>(T? entity) where T : class
     {
         lock (_lock)
         {
@@ -86,16 +86,12 @@ public sealed class DbContext
 
             if (_collections == null || !_collections.ContainsKey(type))
             {
-                _collections ??= new Dictionary<Type, List<DbSet<IEntity>>>();
+                _collections ??= new Dictionary<Type, List<DbSet<object>>>();
 
-                _collections.TryAdd(type, new List<DbSet<IEntity>>());
+                _collections.TryAdd(type, new List<DbSet<object>>());
             }
 
             var collection = _collections[type];
-
-            entity.Id = Guid.NewGuid();
-            entity.Created = CurrentTimestamp;
-            entity.Updated = CurrentTimestamp;
 
             var estimatedSize = EstimateSize(entity);
 
@@ -104,11 +100,11 @@ public sealed class DbContext
                 PerformMaintenance();
             }
 
-            collection.Add(new DbSet<IEntity>()
+            collection.Add(new DbSet<object>()
             {
                 CurrentSizeInBytes = estimatedSize,
                 Content = entity,
-                LastUpdateTime = entity.Created
+                LastUpdateTime = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds()
             });
 
             _collections[type] = collection;
@@ -123,7 +119,7 @@ public sealed class DbContext
     /// <param name="entities"></param>
     /// <exception cref="ArgumentNullException">if entities is null</exception>
     /// <returns></returns>
-    public IList<T> AddMany<T>(List<T>? entities) where T : class, IEntity
+    public IList<T> AddMany<T>(List<T>? entities) where T : class
     {
         lock (_lock)
         {
@@ -133,19 +129,15 @@ public sealed class DbContext
 
             if (_collections == null || !_collections.ContainsKey(type))
             {
-                _collections ??= new Dictionary<Type, List<DbSet<IEntity>>>();
+                _collections ??= new Dictionary<Type, List<DbSet<object>>>();
 
-                _collections.TryAdd(type, new List<DbSet<IEntity>>());
+                _collections.TryAdd(type, new List<DbSet<object>>());
             }
 
             var collection = _collections[type];
 
             foreach (var entity in entities)
             {
-                entity.Id = Guid.NewGuid();
-                entity.Created = CurrentTimestamp;
-                entity.Updated = CurrentTimestamp;
-
                 var estimatedSize = EstimateSize(entity);
 
                 if ((CurrentSizeInBytes + estimatedSize) >= MaxMemoryAllocationInBytes)
@@ -153,11 +145,11 @@ public sealed class DbContext
                     PerformMaintenance();
                 }
 
-                collection.Add(new DbSet<IEntity>()
+                collection.Add(new DbSet<object>()
                 {
                     CurrentSizeInBytes = estimatedSize,
                     Content = entity,
-                    LastUpdateTime = entity.Created
+                    LastUpdateTime = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds()
                 });
             }
 
@@ -175,16 +167,11 @@ public sealed class DbContext
     /// <exception cref="InvalidOperationException">if collection of type T is not found</exception>
     /// <exception cref="InvalidOperationException">if entity to update not found or we have more than one</exception>
     /// <returns></returns>
-    public T Update<T>(T? entity) where T : class, IEntity
+    public T Update<T>(T? entity) where T : class
     {
         lock (_lock)
         {
             ArgumentNullException.ThrowIfNull(entity);
-
-            if (entity.Id == Guid.Empty)
-            {
-                throw new ArgumentException("No id provided");
-            }
 
             var type = typeof(T);
 
@@ -200,13 +187,17 @@ public sealed class DbContext
                 throw new InvalidOperationException($"Collection {type.Name} not found.");
             }
 
-            var foundedElementIndex = collectionContent.FindIndex(e => e.Content?.Id == entity.Id);
+            //TODO add hash function to make equivalences
+            
+            //TODO add parameter to check if exists and id 
+            var foundedElementIndex = collectionContent.FindIndex(e => e.Content?.GetHashCode() == entity.GetHashCode());
 
             if (foundedElementIndex < 0)
             {
                 throw new InvalidOperationException("Entity not found.");
             }
 
+            //TODO add properties validation
             entity.Updated = CurrentTimestamp;
 
             var elementFound = collectionContent[foundedElementIndex];
