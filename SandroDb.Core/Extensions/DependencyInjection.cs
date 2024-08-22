@@ -2,7 +2,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SandloDb.Core.Builders;
-using SandloDb.Core.Services.Hosted;
 
 namespace SandloDb.Core.Extensions;
 
@@ -18,8 +17,6 @@ public static class DependencyInjection
                 var dbContext = dbContextBuilder.Build();
                 return dbContext;
             });
-            
-            services.AddHostedService<MaintenanceService>();
         });
     }
 }

@@ -2,6 +2,7 @@
 using System.Text.Json;
 using SandloDb.Core.Builders;
 using SandloDb.Core.Entities;
+using Timer = System.Timers.Timer;
 
 namespace SandloDb.Core;
 
@@ -10,18 +11,24 @@ public sealed class DbContext
     private Dictionary<Type, List<DbSet<IEntity>>>? _collections;
     private long CurrentTimestamp => new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
     private readonly object _lock;
+    private readonly Timer _timer;
 
     private DbContext()
     {
         _collections = [];
         _lock = new();
+        _timer = new Timer();
+        _timer.Interval = EntityTtlMinutes ?? 5 * 1.5;
+        _timer.Elapsed += OnTimedEvent!;
+        _timer.AutoReset = true;
+        _timer.Enabled = true;
     }
 
     internal static DbContext Create()
     {
         return new DbContext();
     }
-    
+
     /// <summary>
     /// The entity ttl in minutes
     /// </summary>
@@ -793,6 +800,20 @@ public sealed class DbContext
                     _collections.Remove(collection.Key);
                 }
             }
+        }
+    }
+    private void OnTimedEvent(object source, System.Timers.ElapsedEventArgs e)
+    {
+        foreach (var type in CurrentTypes)
+        {
+            var entitiesToDelete = GetBy(x => x.Created <= new DateTimeOffset(DateTime.UtcNow).AddMinutes(-EntityTtlMinutes ?? 5).ToUnixTimeMilliseconds(), type);
+
+            if (!entitiesToDelete.Any())
+            {
+                continue;
+            }
+
+            var deleteResult = RemoveMany(entitiesToDelete, type);
         }
     }
 }
